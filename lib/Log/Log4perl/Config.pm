@@ -14,7 +14,7 @@ use Log::Log4perl::Filter;
 use Log::Log4perl::Filter::Boolean;
 use Log::Log4perl::Config::Watch;
 
-use constant DEBUG => 0;
+use constant _INTERNAL_DEBUG => 0;
 
 our $CONFIG_FILE_READS = 0;
 
@@ -45,19 +45,23 @@ sub init {
 sub init_and_watch {
 ###########################################
     my ($class, $config, $delay) = @_;
+        # delay can be a signal name - in this case we're gonna
+        # set up a signal handler.
 
     if(defined $WATCHER) {
         $config = $WATCHER->file();
-        $delay  = $WATCHER->check_interval();
+        if(defined $Log::Log4perl::Config::Watch::SIGNAL_CAUGHT) {
+            $delay  = $WATCHER->signal();
+        } else {
+            $delay  = $WATCHER->check_interval();
+        }
     }
 
-    print "init_and_watch ($config-$delay). Resetting.\n" if DEBUG;
+    print "init_and_watch ($config-$delay). Resetting.\n" if _INTERNAL_DEBUG;
 
     Log::Log4perl::Logger->reset();
 
     defined ($delay) or $delay = $DEFAULT_WATCH_DELAY;  
-
-    $delay =~ /\D/ && die "illegal non-numerical value for delay: $delay";
 
     if (ref $config) {
         die "Log4perl can only watch a file, not a string of " .
@@ -66,10 +70,17 @@ sub init_and_watch {
         die "Log4perl can only watch a file, not a url like $config";
     }
 
-    $WATCHER = Log::Log4perl::Config::Watch->new(
-                      file           => $config,
-                      check_interval => $delay,
-               );
+    if($delay =~ /\D/) {
+        $WATCHER = Log::Log4perl::Config::Watch->new(
+                          file   => $config,
+                          signal => $delay,
+                   );
+    } else {
+        $WATCHER = Log::Log4perl::Config::Watch->new(
+                          file           => $config,
+                          check_interval => $delay,
+                   );
+    }
 
     _init($class, $config);
 }
@@ -81,11 +92,15 @@ sub _init {
 
     my %additivity = ();
 
-    print "Calling _init\n" if DEBUG;
+    print "Calling _init\n" if _INTERNAL_DEBUG;
     $Log::Log4perl::Logger::INITIALIZED = 1;
 
     #keep track so we don't create the same one twice
     my %appenders_created = ();
+
+    #some appenders need to run certain subroutines right at the
+    #end of the configuration phase, when all settings are in place.
+    my @post_config_subs  = ();
 
     # This logic is probably suited to win an obfuscated programming
     # contest. It desperately needs to be rewritten.
@@ -104,7 +119,7 @@ sub _init {
     my $data = config_read($config);
     
     #use Data::Dumper;
-    #print Data::Dumper::Dumper($data) if DEBUG;
+    #print Data::Dumper::Dumper($data) if _INTERNAL_DEBUG;
 
     my @loggers      = ();
     my %filter_names = ();
@@ -140,7 +155,7 @@ sub _init {
 
             for my $path (@{leaf_paths($data->{$key})}) {
 
-                print "Path before: @$path\n" if DEBUG;
+                print "Path before: @$path\n" if _INTERNAL_DEBUG;
 
                 my $value = boolean_to_perlish(pop @$path);
 
@@ -156,7 +171,7 @@ sub _init {
                     &add_global_cspec(@$path[-1], $value);
 
                 }elsif ($key eq "filter"){
-                    print "Found entry @$path\n" if DEBUG;
+                    print "Found entry @$path\n" if _INTERNAL_DEBUG;
                     $filter_names{@$path[0]}++;
                 } else {
                     # This is a regular logger
@@ -169,13 +184,13 @@ sub _init {
         # Now go over all filters found by name
     for my $filter_name (keys %filter_names) {
 
-        print "Checking filter $filter_name\n" if DEBUG;
+        print "Checking filter $filter_name\n" if _INTERNAL_DEBUG;
 
             # The boolean filter needs all other filters already
             # initialized, defer its initialization
         if($data->{filter}->{$filter_name}->{value} eq
            "Log::Log4perl::Filter::Boolean") {
-            print "Boolean filter ($filter_name)\n" if DEBUG;
+            print "Boolean filter ($filter_name)\n" if _INTERNAL_DEBUG;
             $boolean_filters{$filter_name}++;
             next;
         }
@@ -185,7 +200,7 @@ sub _init {
             $type = $code;
         }
         
-        print "Filter $filter_name is of type $type\n" if DEBUG;
+        print "Filter $filter_name is of type $type\n" if _INTERNAL_DEBUG;
 
         my $filter;
 
@@ -238,108 +253,156 @@ sub _init {
 
         for my $appname (@appnames) {
 
-            my $appenderclass = get_appender_by_name($data, $appname, 
-                                                     \%appenders_created);
-            my $appender;
-
-            print "appenderclass=$appenderclass\n" if DEBUG;
-
-            if (ref $appenderclass) {
-
-                $appender = $appenderclass;
-
-            }else{
-
-                die "ERROR: you didn't tell me how to " .
-                    "implement your appender '$appname'"
-                        unless $appenderclass;
-
-                if (Log::Log4perl::JavaMap::translate($appenderclass)){
-                    # It's Java. Try to map
-                    print "Trying to map Java $appname\n" if DEBUG;
-                    $appender = Log::Log4perl::JavaMap::get($appname, 
-                                                $data->{appender}->{$appname});
-
-                }else{
-                    # It's Perl
-                    my @params = grep { $_ ne "layout" and
-                                        $_ ne "value"
-                                      } keys %{$data->{appender}->{$appname}};
-
-                    my %param = ();
-                    foreach my $pname (@params){
-                        #this could be simple value like 
-                        #{appender}{myAppender}{file}{value} => 'log.txt'
-                        #or a structure like
-                        #{appender}{myAppender}{login} => 
-                        #                         { name => {value => 'bob'},
-                        #                           pwd  => {value => 'xxx'},
-                        #                         }
-                        #in the latter case we send a hashref to the appender
-                        if (exists $data->{appender}{$appname}
-                                          {$pname}{value}      ) {
-                            $param{$pname} = $data->{appender}{$appname}
-                                                    {$pname}{value};
-                        }else{
-                            $param{$pname} = {map {$_ => $data->{appender}
-                                                                {$appname}
-                                                                {$pname}
-                                                                {$_}
-                                                                {value}} 
-                                             keys %{$data->{appender}
-                                                           {$appname}
-                                                           {$pname}}
-                                             };
-                        }
-
-                    }
-
-                    $appender = Log::Log4perl::Appender->new(
-                        $appenderclass, 
-                        name => $appname,
-                        %param,
-                    ); 
-                }
-            }
-            add_layout_by_name($data, $appender, $appname);
-
-                # Check for appender thresholds
-            my $threshold = 
-               $data->{appender}->{$appname}->{Threshold}->{value};
-            if(defined $threshold) {
-                    # Need to split into two lines because of CVS
-                $appender->threshold($
-                    Log::Log4perl::Level::PRIORITY{$threshold});
-            }
-
-                # Check for custom filters attached to the appender
-            my $filtername = 
-               $data->{appender}->{$appname}->{Filter}->{value};
-            if(defined $filtername) {
-                    # Need to split into two lines because of CVS
-                my $filter = Log::Log4perl::Filter::by_name($filtername);
-                die "Filter $filtername doesn't exist" unless defined $filter;
-                $appender->filter($filter);
-            }
-
-            if($system_wide_threshold) {
-                $appender->threshold($
-                    Log::Log4perl::Level::PRIORITY{$system_wide_threshold});
-            }
-
-            if($data->{appender}->{$appname}->{threshold}) {
-                    die "threshold keyword needs to be uppercase";
-            }
+            my $appender = create_appender_instance(
+                $data, $appname, \%appenders_created, \@post_config_subs,
+                $system_wide_threshold);
 
             $logger->add_appender($appender, 'dont_reset_all');
             set_appender_by_name($appname, $appender, \%appenders_created);
         }
     }
 
+    #run post_config subs
+    for(@post_config_subs) {
+        $_->();
+    }
+
     #now we're done, set up all the output methods (e.g. ->debug('...'))
     Log::Log4perl::Logger::reset_all_output_methods();
 }
 
+##################################################
+sub create_appender_instance {
+##################################################
+    my($data, $appname, $appenders_created, $post_config_subs,
+       $system_wide_threshold) = @_;
+
+    my $appenderclass = get_appender_by_name(
+            $data, $appname, $appenders_created);
+
+    print "appenderclass=$appenderclass\n" if _INTERNAL_DEBUG;
+
+    my $appender;
+
+    if (ref $appenderclass) {
+        $appender = $appenderclass;
+    } else {
+        die "ERROR: you didn't tell me how to " .
+            "implement your appender '$appname'"
+                unless $appenderclass;
+
+        if (Log::Log4perl::JavaMap::translate($appenderclass)){
+            # It's Java. Try to map
+            print "Trying to map Java $appname\n" if _INTERNAL_DEBUG;
+            $appender = Log::Log4perl::JavaMap::get($appname, 
+                                        $data->{appender}->{$appname});
+
+        }else{
+            # It's Perl
+            my @params = grep { $_ ne "layout" and
+                                $_ ne "value"
+                              } keys %{$data->{appender}->{$appname}};
+    
+            my %param = ();
+            foreach my $pname (@params){
+                #this could be simple value like 
+                #{appender}{myAppender}{file}{value} => 'log.txt'
+                #or a structure like
+                #{appender}{myAppender}{login} => 
+                #                         { name => {value => 'bob'},
+                #                           pwd  => {value => 'xxx'},
+                #                         }
+                #in the latter case we send a hashref to the appender
+                if (exists $data->{appender}{$appname}
+                                  {$pname}{value}      ) {
+                    $param{$pname} = $data->{appender}{$appname}
+                                            {$pname}{value};
+                }else{
+                    $param{$pname} = {map {$_ => $data->{appender}
+                                                        {$appname}
+                                                        {$pname}
+                                                        {$_}
+                                                        {value}} 
+                                     keys %{$data->{appender}
+                                                   {$appname}
+                                                   {$pname}}
+                                     };
+                }
+    
+            }
+
+            my $depends_on = [];
+    
+            $appender = Log::Log4perl::Appender->new(
+                $appenderclass, 
+                name                 => $appname,
+                l4p_post_config_subs => $post_config_subs,
+                l4p_depends_on       => $depends_on,
+                %param,
+            ); 
+    
+            for(@$depends_on) {
+                # If this appender indicates that it needs other appenders
+                # to exist (e.g. because it's a composite appender that
+                # relays messages on to its appender-refs) then we're 
+                # creating their instances here. Reason for this is that 
+                # these appenders are not attached to any logger and are
+                # therefore missed by the config parser which goes through
+                # the defined loggers and just creates *their* attached
+                # appenders.
+                $appender->composite(1);
+                next if exists $appenders_created->{$appname};
+                my $app = create_appender_instance($data, $_, 
+                             $appenders_created,
+                             $post_config_subs);
+                # If the appender appended a subroutine to $post_config_subs
+                # (a reference to an array of subroutines)
+                # here, the configuration parser will later execute this
+                # method. This is used by a composite appender which needs
+                # to make sure all of its appender-refs are available when
+                # all configuration settings are done.
+
+                # Smuggle this sub-appender into the hash of known appenders 
+                # without attaching it to any logger directly.
+                $
+                Log::Log4perl::Logger::APPENDER_BY_NAME{$_} = $app;
+            }
+        }
+    }
+
+    add_layout_by_name($data, $appender, $appname) unless
+        $appender->composite();
+
+       # Check for appender thresholds
+    my $threshold = 
+       $data->{appender}->{$appname}->{Threshold}->{value};
+    if(defined $threshold) {
+            # Need to split into two lines because of CVS
+        $appender->threshold($
+            Log::Log4perl::Level::PRIORITY{$threshold});
+    }
+
+        # Check for custom filters attached to the appender
+    my $filtername = 
+       $data->{appender}->{$appname}->{Filter}->{value};
+    if(defined $filtername) {
+            # Need to split into two lines because of CVS
+        my $filter = Log::Log4perl::Filter::by_name($filtername);
+        die "Filter $filtername doesn't exist" unless defined $filter;
+        $appender->filter($filter);
+    }
+
+    if($system_wide_threshold) {
+        $appender->threshold($
+            Log::Log4perl::Level::PRIORITY{$system_wide_threshold});
+    }
+
+    if($data->{appender}->{$appname}->{threshold}) {
+            die "threshold keyword needs to be uppercase";
+    }
+
+    return $appender;
+}
 
 ###########################################
 sub add_layout_by_name {
@@ -490,7 +553,7 @@ sub config_read {
         }
     }
     
-    print "Reading $config: [@text]\n" if DEBUG;
+    print "Reading $config: [@text]\n" if _INTERNAL_DEBUG;
 
     if ($text[0] =~ /^<\?xml /) {
         eval { require XML::DOM; require Log::Log4perl::Config::DOMConfigurator; };
@@ -734,6 +797,29 @@ sub allow_code {
     }
 
     return $Log::Log4perl::ALLOW_CODE_IN_CONFIG_FILE;
+}
+
+################################################
+sub var_subst {
+################################################
+    my($varname, $subst_hash) = @_;
+
+        # Throw out blanks
+    $varname =~ s/\s+//g;
+
+    if(exists $subst_hash->{$varname}) {
+        print "Replacing variable: '$varname' => '$subst_hash->{$varname}'\n" 
+            if _INTERNAL_DEBUG;
+        return $subst_hash->{$varname};
+
+    } elsif(exists $ENV{$varname}) {
+        print "Replacing ENV variable: '$varname' => '$ENV{$varname}'\n" 
+            if _INTERNAL_DEBUG;
+        return $ENV{$varname};
+
+    }
+
+    die "Undefined Variable '$varname'";
 }
 
 1;

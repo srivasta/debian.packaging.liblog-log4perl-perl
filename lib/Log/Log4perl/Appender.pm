@@ -9,7 +9,7 @@ use warnings;
 use Log::Log4perl::Level;
 use Log::Log4perl::Config;
 
-use constant DEBUG => 0;
+use constant _INTERNAL_DEBUG => 0;
 
 our $unique_counter = 0;
 
@@ -75,10 +75,11 @@ sub new {
     );
 
     my $self = {
-                 appender => $appender,
-                 name     => $params{name},
-                 layout   => undef,
-                 level    => $DEBUG,
+                 appender  => $appender,
+                 name      => $params{name},
+                 layout    => undef,
+                 level     => $ALL,
+                 composite => 0,
                };
 
         #whether to collapse arrays, etc.
@@ -95,11 +96,20 @@ sub new {
 }
 
 ##################################################
+sub composite { # Set/Get the composite flag
+##################################################
+    my ($self, $flag) = @_;
+
+    $self->{composite} = $flag if defined $flag;
+    return $self->{composite};
+}
+
+##################################################
 sub threshold { # Set/Get the appender threshold
 ##################################################
     my ($self, $level) = @_;
 
-    print "Setting threshold to $level\n" if DEBUG;
+    print "Setting threshold to $level\n" if _INTERNAL_DEBUG;
 
     if(defined $level) {
         # Checking for \d makes for a faster regex(p)
@@ -123,7 +133,7 @@ sub log {
     # of an "appender threshold"
     if($self->{level} > $
                         Log::Log4perl::Level::PRIORITY{$level}) {
-        print "$self->{level} > $level, aborting\n" if DEBUG;
+        print "$self->{level} > $level, aborting\n" if _INTERNAL_DEBUG;
         return undef;
     }
 
@@ -134,52 +144,50 @@ sub log {
         if($self->{filter}->ok(%$p,
                                log4p_category => $category,
                                log4p_level    => $level )) {
-            print "Filter $self->{filter}->{name} passes\n" if DEBUG;
+            print "Filter $self->{filter}->{name} passes\n" if _INTERNAL_DEBUG;
         } else {
-            print "Filter $self->{filter}->{name} blocks\n" if DEBUG;
+            print "Filter $self->{filter}->{name} blocks\n" if _INTERNAL_DEBUG;
             return undef;
         }
     }
 
-    $self->{layout} || $self->layout();  #set to default if not already
-                                         #can this be moved?
+    unless($self->composite()) {
 
-    #doing the rendering in here 'cause this is 
-    #where we keep the layout
+            #not defined, the normal case
+        if (! defined $self->{warp_message} ){
+                #join any message elements
+            $p->{message} = 
+                join($Log::Log4perl::JOIN_MSG_ARRAY_CHAR, 
+                     @{$p->{message}} 
+                     ) if ref $p->{message} eq "ARRAY";
+            
+            #defined but false, e.g. Appender::DBI
+        } elsif (! $self->{warp_message}) {
+            ;  #leave the message alone
+    
+        } elsif (ref($self->{warp_message}) eq "CODE") {
+            #defined and a subref
+            $p->{message} = 
+                [$self->{warp_message}->(@{$p->{message}})];
+        } else {
+            #defined and a function name?
+            no strict qw(refs);
+            $p->{message} = 
+                [$self->{warp_message}->(@{$p->{message}})];
+        }
 
-        #not defined, the normal case
-    if (! defined $self->{warp_message} ){ 
-            #join any message elements
-        $p->{message} = 
-            join($Log::Log4perl::JOIN_MSG_ARRAY_CHAR, 
-                 @{$p->{message}} 
-                 );
-        
-        #defined but false, e.g. Appender::DBI
-    } elsif (! $self->{warp_message}) {
-        ;  #leave the message alone
-
-    } elsif (ref($self->{warp_message}) eq "CODE") {
-        #defined and a subref
-        $p->{message} = 
-            [$self->{warp_message}->(@{$p->{message}})];
-    } else {
-        #defined and a function name?
-        no strict qw(refs);
-        $p->{message} = 
-            [$self->{warp_message}->(@{$p->{message}})];
+        $p->{message} = $self->{layout}->render($p->{message}, 
+            $category,
+            $level,
+            3 + $Log::Log4perl::caller_depth,
+        ) if $self->layout();
     }
-
-    $p->{message} = $self->{layout}->render($p->{message}, 
-                                            $category,
-                                            $level,
-                                            3 + $Log::Log4perl::caller_depth,
-                                            );
 
     $self->{appender}->log(%$p, 
                             #these are used by our Appender::DBI
                             log4p_category => $category,
-                            log4p_level  => $level,);
+                            log4p_level    => $level,
+                          );
     return 1;
 }
 
@@ -222,7 +230,7 @@ sub filter { # Set filter
     my ($self, $filter) = @_;
 
     if($filter) {
-        print "Setting filter to $filter->{name}\n" if DEBUG;
+        print "Setting filter to $filter->{name}\n" if _INTERNAL_DEBUG;
         $self->{filter} = $filter;
     }
 

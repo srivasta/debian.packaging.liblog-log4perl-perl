@@ -1,11 +1,37 @@
 #testing init_and_watch
-#special problem with init_and_watch,
-#fixed in Logger::reset by setting logger level to OFF
-
-use Test::More;
+#same as 027Watch2, just with signal handling instead of watch/delay code
 
 use warnings;
 use strict;
+use Test::More;
+use Config;
+
+our $SIGNALS_AVAILABLE = 0;
+
+BEGIN {
+    no warnings;
+    # Check if this platform supports signals
+    if (length $Config{sig_name} and length $Config{sig_num}) {
+        eval {
+            $SIG{USR1} = sub { $SIGNALS_AVAILABLE = 1 };
+            # From the Config.pm manpage
+            my(%sig_num);
+            my @names = split ' ', $Config{sig_name};
+            @sig_num{@names} = split ' ', $Config{sig_num};
+
+            kill $sig_num{USR1}, $$;
+        };
+        if($@) {
+            $SIGNALS_AVAILABLE = 0;
+        }
+    }
+        
+    if ($SIGNALS_AVAILABLE) {
+        plan tests => 15;
+    }else{
+        plan skip_all => "only on platforms supporting signals";
+    }
+}
 
 use Log::Log4perl;
 use Log::Log4perl::Appender::TestBuffer;
@@ -42,8 +68,7 @@ open (CONF, ">$testconf") || die "can't open $testconf $!";
 print CONF $conf1;
 close CONF;
 
-
-Log::Log4perl->init_and_watch($testconf, 1);
+Log::Log4perl->init_and_watch($testconf, 'HUP');
 
 my $logger = Log::Log4perl::get_logger('animal.dog');
 
@@ -57,14 +82,11 @@ my $app0 = Log::Log4perl::Appender::TestBuffer->by_name("myAppender");
 
 $logger->debug('debug message, should appear');
 
-is($app0->buffer(), "DEBUG - debug message, should appear\n");
+is($app0->buffer(), "DEBUG - debug message, should appear\n", "debug()");
 
 
 #---------------------------
-#now go to sleep and reload
-
-print "sleeping for 3 seconds\n";
-sleep 3;
+#now reload and then signal
 
 $conf1 = <<EOL;
 log4j.category   = WARN, myAppender
@@ -83,6 +105,10 @@ EOL
 open (CONF, ">$testconf") || die "can't open $testconf $!";
 print CONF $conf1;
 close CONF;
+
+#---------------------------
+# send the signal to the process itself
+kill(1, $$) or die "Cannot signal";
 
 ok(! $logger->is_debug(), "is_debug - false");
 ok(! $logger->is_info(),  "is_info - false");
@@ -116,5 +142,4 @@ $logger->info('warning message to cat, should appear');
 
 like($app1->buffer(), qr/(WARN - warning message, should appear\n){2}INFO - warning message to cat, should appear/, "message output");
 
-BEGIN {plan tests => 15};
 unlink $testconf;

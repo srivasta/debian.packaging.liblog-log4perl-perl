@@ -2,6 +2,53 @@
 Revision history for Log::Log4perl
 ##################################################
 
+0.40 (11/11/2003)
+    * (ms) perl 5.005_03 fix for l4p::Appender::Synchronized
+    * (ms) Fixed a bug in 0.39 (thanks to James King for finding) which
+      caused composite appenders like Synchronized to just use 
+      SimpleLayout. With the fix, composite appenders are now relaying
+      messages unmodified to their delegates, which can then apply 
+      any layout they desire.
+    * (ms) Added file_open(), file_close() and file_switch() to 
+      l4p::Appender::File
+
+0.39 (10/23/2003)
+    * (kg) fixed bug in interaction between Logger::Level and Level::is_valid
+      so that now you can do $logger->level('INFO') instead of just $INFO.
+    * (ms) Added logic for 'composite appenders'. Appenders can now be
+      configured to relay messages to other appenders. Added 
+      Log::Log4perl::Appender::Synchronized, an appender guaranteeing 
+      atomic logging of messages via semaphores.
+    * (ms) Added basic substitution to PropertyConfigurator. Now you can
+      define variables (like in "name=value") and subsequent patterns
+      of "${name}" will be replaced by "value" in the configuration file.
+    * (kg) Followed Mike's lead and added variable substitution to the 
+      DOMConfigurator.
+    * (ms) Added Log::Log4perl::Appender::Socket as a simple Socket
+      appender featuring connection recovery.
+
+0.38 (09/29/2003)
+    * (kg) fixed bug where custom_levels beneath DEBUG didn't work
+    * (ms) fixed 5.00305 incompatibility reported by 
+      Brett Rann <brettrann@mail.com> (constants with leading _).
+    * (ms) Log::Log4perl->easy_init() now calls ->reset() first to make sure
+      it's not duplicating the existing logging environment. Thanks
+      to William McKee <william@knowmad.com> for bringing this up.
+    * (ms) fixed bug with error_die() - printed the wrong function/line/file.
+      Reported by Brett Rann <brettrann@mail.com>.
+    * (ms) added %T to PatternLayout as a stack traced as suggested by
+      Brett Rann <brettrann@mail.com>.
+
+0.37 (09/14/2003)
+    * (kg) adjusting tests for XML::Parser 2.32 having broken
+      XML::DOM 1.42 and lower
+    * (ms) Added signal handling to init_and_watch
+    * (ms) renamed l4p-internal DEBUG constant to avoid confusion with
+      DEBUG() and $DEBUG as suggested by Jim Cromie <jcromie@divsol.com>.
+    * (ms) Applied patch by Mac Yang <mac@proofpoint.com> for 
+      Log::Log4perl::DateFormat to calculate the timezone for the 'Z'
+      conversion specifier.
+
 0.36 (07/22/2003)
     * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
       an accessor for all appenders currently defined -- added 

@@ -11,14 +11,18 @@ eg/log4j-file-append-perl.conf
 eg/log4j-manual-1.conf
 eg/log4j-manual-2.conf
 eg/log4j-manual-3.conf
+eg/override_appender
 eg/syslog.pl
 lib/Log/Log4perl.pm
 lib/Log/Log4perl/Appender.pm
 lib/Log/Log4perl/Appender/DBI.pm
 lib/Log/Log4perl/Appender/File.pm
 lib/Log/Log4perl/Appender/Screen.pm
+lib/Log/Log4perl/Appender/Socket.pm
+lib/Log/Log4perl/Appender/Synchronized.pm
 lib/Log/Log4perl/Appender/TestArrayBuffer.pm
 lib/Log/Log4perl/Appender/TestBuffer.pm
+lib/Log/Log4perl/Appender/TestFileCreeper.pm
 lib/Log/Log4perl/Config.pm
 lib/Log/Log4perl/Config/DOMConfigurator.pm
 lib/Log/Log4perl/Config/PropertyConfigurator.pm
@@ -73,6 +77,7 @@ t/024WarnDieCarp.t
 t/025CustLevels.t
 t/026FileApp.t
 t/027Watch2.t
+t/027Watch3.t
 t/028Additivity.t
 t/029SysWide.t
 t/030LDLevel.t
@@ -87,6 +92,8 @@ t/038XML-DOM1.t
 t/039XML-DOM2.t
 t/040Filter.t
 t/041SafeEval.t
+t/042SyncApp.t
+t/043VarSubst.t
 t/compare.pl
 t/deeper1.expected
 t/deeper6.expected
