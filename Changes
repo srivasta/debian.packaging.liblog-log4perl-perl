@@ -2,6 +2,44 @@
  Revision history for Log::Log4perl
 ##################################################
 
+0.46 (06/13/2004)
+    * (ms) removed superfluous eval() in Log4perl.pm, reported anonymously
+           on the CPAN bugtracker.
+    * (ms) Added a cleanup() function to Logger.pm which is used by an
+           END {} block in Logger.pm to tear down all Loggers/Appenders
+           before global destruction kicks in. In addition, Kevin found 
+           that the eval "" is the cause of an Appender memleak. Moved
+           assignment variable out of the eval to plug the leak.
+           Added $Log::Log4perl::CHATTY_DESTROY_METHODS, which shows 
+           what L4p objects are destroyed and when.
+    * (ms) Kevin's idea is in now, on localizing $? in the L4p global END {} 
+           block. It prevents logdie() et. al from exiting with unwanted
+           exit codes when global cleanup / global destruction modifies $?,
+           as seen by Tim with the Email appender.
+    * (ms) Dave Viner <dviner@yahoo-inc.com> added isLevelEnabled() methods
+           as aliases to is_level().
+
+0.45 (05/23/2004)
+    * (ms) fix for t/045Composite.t on perl 5.6.1 by Jeff Macdonald 
+           <jeff.macdonald@e-dialog.com> (specify number of test cases,
+           getting rid of no_plan).
+    * (ms) Dennis Gregorovic <dgregor@redhat.com> provided a patch to 
+           protect applications who are tinkering with $/. It is set
+           to "\n" now locally when L4p is reading the conf file. Added
+           a test case to t/004Config.t.
+    * (ms) Fixed a documentation error with initialized(), pointed 
+           out by Victor Felix <vfelix@tigr.org>.
+
+0.44 (04/25/2004)
+    * (ms) added filename() method to L4P::Appender::File as suggested 
+           by Lee Carmichael <lecar_red@yahoo.com>
+    * (ms) added RRDs appender Log::Log4perl::Appender::RRDs and testcases
+    * (ms) fixed Log::Log4perl::Appender to check if a an appender package
+           has already been loaded and skip 'require' in this case. 
+           Packages injected via Class::Prototyped caused an error with this.
+    * (ms) Extended the FAQ's "How can I write my own appender?" on
+           how to dynamically create new appenders via Class::Prototyped.
+
 0.43 (03/22/2004)
     * (ms) Applied patch by Markus Peter <warp@spin.de> for 'pipe'
            mode in Log::Log4perl::Appender::File
@@ -11,6 +49,9 @@
            (path fixed).
     * (ms) Lars Thegler <lars@thegler.dk> provided a patch to keep 
            compatibility with 5.005_03.
+    * (ms) Added a patch to avoid warnings on undefined MDC values referenced
+           via %X in PatternLayout. Now, the string "[undef]" is used. Bug
+           was reported by Ritu Kohli <Ritu.Kohli@ubs.com>
 
 0.42 (02/14/2004)
     * (kg) added filters to XML DOMConfig and DTD

@@ -2,6 +2,9 @@
 package Log::Log4perl;
 ##################################################
 
+    # Have this first to execute last
+END { local($?); Log::Log4perl::Logger::cleanup(); }
+
 use 5.006;
 use strict;
 use warnings;
@@ -14,7 +17,7 @@ use Log::Log4perl::Appender;
 
 use constant _INTERNAL_DEBUG => 1;
 
-our $VERSION = '0.43';
+our $VERSION = '0.46';
 
    # set this to '1' if you're using a wrapper
    # around Log::Log4perl
@@ -56,6 +59,8 @@ our $JOIN_MSG_ARRAY_CHAR = '';
     #version required for XML::DOM, to enable XML Config parsing
     #and XML Config unit tests
 our $DOM_VERSION_REQUIRED = '1.29'; 
+
+our $CHATTY_DESTROY_METHODS = 0;
 
 ##################################################
 sub import {
@@ -105,9 +110,8 @@ sub import {
 
             # Define default logger object in caller's package
         my $logger = get_logger("$caller_pkg");
-        my $string = "\$${caller_pkg}::_default_logger = \$logger";
-        eval $string or die "$@";
-
+        ${$caller_pkg . '::_default_logger'} = $logger;
+        
             # Define DEBUG, INFO, etc. routines in caller's package
         for(qw(DEBUG INFO WARN ERROR FATAL)) {
             my $level   = $_;
@@ -538,6 +542,11 @@ level, as derived from either the logger's category (or, in absence of
 that, one of the logger's parent's level setting) is 
 C<$WARN>, C<$ERROR> or C<$FATAL>.
 
+Also available are a series of more Java-esque functions which return
+the same values. These are of the format C<isI<Level>Enabled()>,
+so C<$logger-E<gt>isDebugEnabled()> is synonymous to 
+C<$logger-E<gt>is_debug()>.
+
 These level checking functions
 will come in handy later, when we want to block unnecessary
 expensive parameter construction in case the logging level is too
@@ -610,6 +619,7 @@ C<Log::Log4perl> already comes with a standard set of appenders:
     Log::Log4perl::Appender::Socket
     Log::Log4perl::Appender::DBI
     Log::Log4perl::Appender::Synchronized
+    Log::Log4perl::Appender::RRDs
 
 to log to the screen, to files and to databases. 
 
@@ -1159,12 +1169,15 @@ that it will leave a potentially existing configuration alone and
 will only call C<init()> if Log::Log4perl hasn't been initialized yet.
 
 If you're just curious if Log::Log4perl has been initialized yet, the
+check
 
     if(Log::Log4perl->initialized()) {
-        # Not initialized yet ...
+        # Yes, Log::Log4perl has already been initialized
+    } else {
+        # No, not initialized yet ...
     }
 
-check can be used.
+can be used.
 
 If you're afraid that the components of your system are stepping on 
 each other's toes or if you are thinking that different components should
@@ -2147,13 +2160,16 @@ our
     Contributors:
     Chris R. Donnelly <cdonnelly@digitalmotorworks.com>
     James FitzGibbon <james.fitzgibbon@target.com>
+    Dennis Gregorovic <dgregor@redhat.com>
     Paul Harrington <Paul-Harrington@deshaw.com>
     David Hull <hull@paracel.com>
+    Jeff Macdonald <jeff.macdonald@e-dialog.com>
     Markus Peter <warp@spin.de>
     Brett Rann <brettrann@mail.com>
     Erik Selberg <erik@selberg.com>
     Aaron Straup Cope <asc@vineyard.net>
     Lars Thegler <lars@thegler.dk>
+    David Viner <dviner@yahoo-inc.com>
     Mac Yang <mac@proofpoint.com>
 
 =head1 COPYRIGHT AND LICENSE
