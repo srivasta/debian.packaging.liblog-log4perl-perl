@@ -1,5 +1,5 @@
 ######################################################################
-    Log::Log4perl 0.43
+    Log::Log4perl 0.46
 ######################################################################
 
 NAME
@@ -215,6 +215,10 @@ How to use it
     that, one of the logger's parent's level setting) is $WARN, $ERROR or
     $FATAL.
 
+    Also available are a series of more Java-esque functions which return
+    the same values. These are of the format "is*Level*Enabled()", so
+    "$logger->isDebugEnabled()" is synonymous to "$logger->is_debug()".
+
     These level checking functions will come in handy later, when we want to
     block unnecessary expensive parameter construction in case the logging
     level is too low to log the statement anyway, like in:
@@ -283,6 +287,7 @@ How to use it
         Log::Log4perl::Appender::Socket
         Log::Log4perl::Appender::DBI
         Log::Log4perl::Appender::Synchronized
+        Log::Log4perl::Appender::RRDs
 
     to log to the screen, to files and to databases.
 
@@ -806,12 +811,15 @@ Categories
     "init()" if Log::Log4perl hasn't been initialized yet.
 
     If you're just curious if Log::Log4perl has been initialized yet, the
+    check
 
         if(Log::Log4perl->initialized()) {
-            # Not initialized yet ...
+            # Yes, Log::Log4perl has already been initialized
+        } else {
+            # No, not initialized yet ...
         }
 
-    check can be used.
+    can be used.
 
     If you're afraid that the components of your system are stepping on each
     other's toes or if you are thinking that different components should
@@ -1709,13 +1717,16 @@ AUTHORS
         Contributors:
         Chris R. Donnelly <cdonnelly@digitalmotorworks.com>
         James FitzGibbon <james.fitzgibbon@target.com>
+        Dennis Gregorovic <dgregor@redhat.com>
         Paul Harrington <Paul-Harrington@deshaw.com>
         David Hull <hull@paracel.com>
+        Jeff Macdonald <jeff.macdonald@e-dialog.com>
         Markus Peter <warp@spin.de>
         Brett Rann <brettrann@mail.com>
         Erik Selberg <erik@selberg.com>
         Aaron Straup Cope <asc@vineyard.net>
         Lars Thegler <lars@thegler.dk>
+        David Viner <dviner@yahoo-inc.com>
         Mac Yang <mac@proofpoint.com>
 
 COPYRIGHT AND LICENSE
