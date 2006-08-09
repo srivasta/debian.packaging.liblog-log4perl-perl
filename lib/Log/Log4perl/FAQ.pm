@@ -632,7 +632,17 @@ the logging system in order not to lose any messages in the process.
 
 Luckily, I<Mark Pfeiffer>'s C<Log::Dispatch::FileRotate> appender
 works well with Log::Log4perl to rotate your logfiles in a variety of ways.
-All you have to do is specify it in your Log::Log4perl configuration file
+
+Note, however, that having the application deal with rotating a log
+file is not cheap. Among other things, it requires locking the log file 
+with every write to avoid race conditions.
+There are good reasons to use external rotators like C<newsyslog>
+instead.
+See the entry C<How can I rotate a logfile with newsyslog?> in the
+FAQ for more information on how to configure it.
+
+When using C<Log::Dispatch::FileRotate>, 
+all you have to do is specify it in your Log::Log4perl configuration file
 and your logfiles will be rotated automatically.
 
 You can choose between rolling based on a maximum size ("roll if greater
@@ -1952,6 +1962,268 @@ appears. Setting STDOUT to UTF-8 mode as in
 will silently print the Unicode string to STDOUT in UTF-8. To see the 
 characters printed, you'll need a UTF-8 terminal with a font including
 japanese Katakana characters.
+
+=head2 How can I send errors to the screen, and debug messages to a file?
+
+Let's assume you want to maintain a detailed DEBUG output in a file
+and only messages of level ERROR and higher should be printed on the
+screen. Often times, developers come up with something like this:
+
+     # Wrong!!!
+    log4perl.logger = DEBUG, FileApp
+    log4perl.logger = ERROR, ScreenApp
+     # Wrong!!!
+
+This won't work, however. Logger definitions aren't additive, and the
+second statement will overwrite the first one. Log4perl versions
+below 1.04 were silently accepting this, leaving people confused why
+it wouldn't work as expected.
+As of 1.04, this will throw a I<fatal error> to notify the user of
+the problem.
+
+What you want to do instead, is this:
+
+    log4perl.logger                    = DEBUG, FileApp, ScreenApp
+
+    log4perl.appender.FileApp          = Log::Log4perl::Appender::File
+    log4perl.appender.FileApp.filename = test.log
+    log4perl.appender.FileApp.layout   = SimpleLayout
+
+    log4perl.appender.ScreenApp          = Log::Log4perl::Appender::Screen
+    log4perl.appender.ScreenApp.stderr   = 0
+    log4perl.appender.ScreenApp.layout   = SimpleLayout
+       ### limiting output to ERROR messages
+    log4perl.appender.Screenapp.Threshold = ERROR
+       ###
+
+Note that without the second appender's C<Threshold> setting, both appenders
+would receive all messages prioritized DEBUG and higher. With the
+threshold set to ERROR, the second appender will filter the messages
+as required.
+
+=head2 Where should I put my logfiles?
+
+Your log files may go anywhere you want them, but the effective
+user id of the calling process must have write access. 
+
+If the log file doesn't exist at program start, Log4perl's file appender
+will create it. For this, it needs write access to the directory where
+the new file will be located in. If the log file already exists at startup,
+the process simply needs write access to the file. Note that it will
+need write access to the file's directory if you're encountering situations
+where the logfile gets recreated, e.g. during log rotation.
+
+If Log::Log4perl is used by a web server application (e.g. in a CGI script
+or mod_perl), then the webserver's user (usually C<nobody> or C<www>)
+must have the permissions mentioned above.
+
+To prepare your web server to use log4perl, we'd recommend:
+
+    webserver:~$ su -
+    webserver:~# mkdir /var/log/cgiapps
+    webserver:~# chown nobody:root /var/log/cgiapps/
+    webserver:~# chown nobody:root -R /var/log/cgiapps/
+    webserver:~# chmod 02755 -R /var/log/cgiapps/
+
+Then set your /etc/log4perl.conf file to include:
+
+    log4perl.appender.FileAppndr1.filename = 
+        /var/log/cgiapps/<app-name>.log
+
+=head2 How can my file appender deal with disappearing log files?
+
+The file appender that comes with Log4perl, L<Log::Log4perl::Appender::File>,
+will open a specified log file at initialization time and will
+keep writing to it via a file handle.
+
+In case the associated file goes way, messages written by a 
+long-running process will still be written
+to the file handle. In case the file has been moved to a different 
+location on the same file system, the writer will keep writing to
+it under the new filename. In case the file has been removed from
+the file system, the log messages will end up in nowhere land. This 
+is not a bug in Log4perl, this is how Unix works. There is
+no error message in this case, because the writer has no idea that
+the file handle is not associated with a visible file.
+
+To prevent the loss of log messages when log files disappear, the
+file appender's C<recreate> option needs to be set to a true value:
+
+    log4perl.appender.Logfile.recreate = 1
+
+This will instruct the file appender to check in regular intervals
+(default: 30 seconds) if the log file is still there. If it finds
+out that the file is missing, it will recreate it.
+
+Continuously checking if the log file still exists is fairly
+expensive. For this reason it is only performed every 30 seconds. To
+change this interval, the option C<recreate_check_interval> can be set
+to the number of seconds between checks. In the extreme case where the
+check should be performed before every write, it can even be set to 0:
+
+    log4perl.appender.Logfile.recreate = 1
+    log4perl.appender.Logfile.recreate_check_interval = 0
+
+To avoid having to check the file system so frequently, a signal
+handler can be set up:
+
+    log4perl.appender.Logfile.recreate = 1
+    log4perl.appender.Logfile.recreate_check_signal = USR1
+
+This will install a signal handler which will recreate a missing log file
+immediatly when it receives the defined signal. 
+
+Note that the init_and_watch() method for Log4perl's initialization
+can also be instructed to install a signal handler, usually using the
+HUP signal. Make sure to use a different signal if you're using both
+of them at the same time.
+
+=head2 How can I rotate a logfile with newsyslog?
+
+Here's a few things that need to be taken care of when using the popular
+log file rotating utilty C<newsyslog>
+(http://www.courtesan.com/newsyslog) with Log4perl's file appender
+in long-running processes.
+
+For example, with a newsyslog configuration like
+
+    # newsyslog.conf
+    /tmp/test.log 666  12  5  *  B
+
+and a call to 
+
+    # newsyslog -f /path/to/newsyslog.conf
+
+C<newsyslog> will take action if C</tmp/test.log> is larger than the 
+specified 5K in size. It will move the current log file C</tmp/test.log> to 
+C</tmp/test.log.0> and create a new and empty C</tmp/test.log> with
+the specified permissions (this is why C<newsyslog> needs to run as root). 
+An already existing C</tmp/test.log.0> would be moved to
+C</tmp/test.log.1>, C</tmp/test.log.1> to C</tmp/test.log.2>, and so
+forth, for every one of a max number of 12 archived logfiles that have
+been configured in C<newsyslog.conf>.
+
+Although a new file has been created, from Log4perl's appender's point
+of view, this situation is identical to the one described in the
+previous FAQ entry, labeled C<How can my file appender deal with
+disappearing log files>.
+
+To make sure that log messages are written to the new log file and not
+to an archived one or end up in nowhere land,
+the appender's C<recreate> and C<recreate_check_interval> have to be
+configured to deal with the 'disappearing' log file.
+
+The situation gets interesting when C<newsyslog>'s option
+to compress archived log files is enabled. This causes the
+original log file not to be moved, but to disappear. If the
+file appender isn't configured to recreate the logfile in this situation,
+log messages will actually be lost without warning. This also
+applies for the short time frame of C<recreate_check_interval> seconds
+in between the recreator's file checks.
+
+To make sure that no messages get lost, one option is to set the
+interval to
+
+    log4perl.appender.Logfile.recreate_check_interval = 0
+
+However, this is fairly expensive. A better approach is to define
+a signal handler:
+
+    log4perl.appender.Logfile.recreate = 1
+    log4perl.appender.Logfile.recreate_signal  = USR1
+    log4perl.appender.Logfile.recreate_pid_write = /tmp/myappid
+
+As a service for C<newsyslog> users, Log4perl's file appender writes
+the current process ID to a PID file specified by the C<recreate_pid_write>
+option.  C<newsyslog> then needs to be configured as in
+
+    # newsyslog.conf configuration for compressing archive files and
+    # sending a signal to the Log4perl-enabled application
+    /tmp/test.log 666  12  5  *  B /tmp/myappid 30
+
+to send the defined signal (30, which is USR1 on FreeBSD) to the
+application process at rotation time. Note that the signal number
+is different on Linux, where USR1 denotes as 10. Check C<man signal>
+for details.
+
+=head2 How can a process under user id A log to a file under user id B?
+
+This scenario often occurs in configurations where processes run under
+various user IDs but need to write to a log file under a fixed, but 
+different user id. 
+
+With a traditional file appender, the log file will probably be created
+under one user's id and appended to under a different user's id. With
+a typical umask of 0002, the file will be created with -rw-rw-r--
+permissions. If a user who's not in the first user's group
+subsequently appends to the log file, it will fail because of a
+permission problem.
+
+Two potential solutions come to mind:
+
+=over 4
+
+=item *
+
+Creating the file with a umask of 0000 will allow all users to append
+to the log file. Log4perl's file appender C<Log::Log4perl::Appender::File>
+has an C<umask> option that can be set to support this:
+
+    log4perl.appender.File = Log::Log4perl::Appender::File
+    log4perl.appender.File.umask = sub { 0000 };
+
+This way, the log file will be created with -rw-rw-rw- permissions and
+therefore has world write permissions. This might open up the logfile
+for unwanted manipulations by arbitrary users, though.
+
+=item *
+
+Running the process under an effective user id of C<root> will allow
+it to write to the log file, no matter who started the process.
+However, this is not a good idea, because of security concerns.
+
+=back
+
+Luckily, under Unix, there's the syslog daemon which runs as root and
+takes log requests from user processes over a socket and writes them
+to log files as configured in C</etc/syslog.conf>.
+
+By modifying C</etc/syslog.conf> and HUPing the syslog daemon, you can
+configure new log files:
+
+    # /etc/syslog.conf
+    ...
+    user.* /some/path/file.log
+
+Using the C<Log::Dispatch::Syslog> appender, which comes with the
+C<Log::Log4perl> distribution, you can then send messages via syslog:
+
+    use Log::Log4perl qw(:easy);
+
+    Log::Log4perl->init(\<<EOT);
+        log4perl.logger = DEBUG, app
+        log4perl.appender.app=Log::Dispatch::Syslog
+        log4perl.appender.app.Facility=user
+        log4perl.appender.app.layout=SimpleLayout
+    EOT
+    
+        # Writes to /some/path/file.log
+    ERROR "Message!";
+
+This way, the syslog daemon will solve the permission problem. 
+
+Note that while it is possible to use syslog() without Log4perl (syslog
+supports log levels, too), traditional syslog setups have a
+significant drawback.
+
+Without Log4perl's ability to activate logging in only specific
+parts of a system, complex systems will trigger log events all over
+the place and slow down execution to a crawl at high debug levels.
+
+Remote-controlling logging in the hierarchical parts of an application
+via Log4perl's categories is one of its most distinguished features.
+It allows for enabling high debug levels in specified areas without
+noticable performance impact.
 
 =cut
 
