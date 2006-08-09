@@ -7,6 +7,7 @@ our @ISA = qw(Log::Log4perl::Appender);
 use warnings;
 use strict;
 use Log::Log4perl::Config::Watch;
+use constant _INTERNAL_DEBUG => 0;
 
 ##################################################
 sub new {
@@ -16,19 +17,37 @@ sub new {
     my $self = {
         name      => "unknown name",
         umask     => undef,
+        owner     => undef,
+        group     => undef,
         autoflush => 1,
         mode      => "append",
         binmode   => undef,
         utf8      => undef,
         recreate  => 0,
         recreate_check_interval => 30,
+        recreate_signal         => undef,
+        recreate_pid_write      => undef,
         @options,
     };
+
+    if(defined $self->{umask} and $self->{umask} =~ /^0/) {
+            # umask value is a string, meant to be an oct value
+        $self->{umask} = oct($self->{umask});
+    }
 
     die "Mandatory parameter 'filename' missing" unless
         exists $self->{filename};
 
     bless $self, $class;
+
+    if($self->{recreate_pid_write}) {
+        print "Creating pid file",
+              " $self->{recreate_pid_write}\n" if _INTERNAL_DEBUG;
+        open FILE, ">$self->{recreate_pid_write}" or 
+            die "Cannot open $self->{recreate_pid_write}";
+        print FILE "$$\n";
+        close FILE;
+    }
 
         # This will die() if it fails
     $self->file_open();
@@ -63,13 +82,31 @@ sub file_open {
 
     umask($self->{umask}) if defined $self->{umask};
 
+    my $didnt_exist = ! -f $self->{filename};
+
     open $fh, "$arrows$self->{filename}" or
         die "Can't open $self->{filename} ($!)";
+
+    if($didnt_exist and 
+         ( defined $self->{owner} or defined $self->{group} )
+      ) {
+
+        eval { $self->perms_fix() };
+
+        if($@) {
+              # Cleanup and re-throw
+            unlink $self->{filename};
+            die $@;
+        }
+    }
 
     if($self->{recreate}) {
         $self->{watcher} = Log::Log4perl::Config::Watch->new(
             file           => $self->{filename},
-            check_interval => $self->{recreate_check_interval},
+            ($self->{recreate_check_interval} ?
+              (check_interval => $self->{recreate_check_interval}) : ()),
+            ($self->{recreate_check_signal} ?
+              (signal => $self->{recreate_check_signal}) : ()),
         );
     }
 
@@ -101,9 +138,49 @@ sub file_close {
 }
 
 ##################################################
+sub perms_fix {
+##################################################
+    my($self) = @_;
+
+    my ($uid_org, $gid_org) = (stat $self->{filename})[4,5];
+
+    my ($uid, $gid) = ($uid_org, $gid_org);
+
+    if(!defined $uid) {
+        die "stat of $self->{filename} failed ($!)";
+    }
+
+    my $needs_fixing = 0;
+
+    if(defined $self->{owner}) {
+        $uid = $self->{owner};
+        if($self->{owner} !~ /^\d+$/) {
+            $uid = (getpwnam($self->{owner}))[2];
+            die "Unknown user: $self->{owner}" unless defined $uid;
+        }
+    }
+
+    if(defined $self->{group}) {
+        $gid = $self->{group};
+        if($self->{group} !~ /^\d+$/) {
+            $gid = getgrnam($self->{group});
+
+            die "Unknown group: $self->{group}" unless defined $gid;
+        }
+    }
+    if($uid != $uid_org or $gid != $gid_org) {
+        chown($uid, $gid, $self->{filename}) or 
+            die "chown('$uid', '$gid') on '$self->{filename}' failed: $!";
+    }
+}
+
+##################################################
 sub file_switch {
 ##################################################
     my($self, $new_filename) = @_;
+
+    print "Switching file from $self->{filename} to $new_filename\n" if
+        _INTERNAL_DEBUG;
 
     $self->file_close();
     $self->{filename} = $new_filename;
@@ -116,8 +193,15 @@ sub log {
     my($self, %params) = @_;
 
     if($self->{recreate}) {
-        if($self->{watcher}->file_has_moved()) {
-            $self->file_switch($self->{filename});
+        if($self->{recreate_check_signal}) {
+            if($self->{watcher}->{signal_caught}) {
+                $self->{watcher}->{signal_caught} = 0;
+                $self->file_switch($self->{filename});
+            }
+        } else {
+            if($self->{watcher}->file_has_moved()) {
+                $self->file_switch($self->{filename});
+            }
         }
     }
 
@@ -201,6 +285,20 @@ If set to C<0222> (default), new
 files will be created with C<rw-r--r--> permissions.
 If set to C<0000>, new files will be created with C<rw-rw-rw-> permissions.
 
+=item owner
+
+If set, specifies that the owner of the newly created log file should
+be different from the effective user id of the running process.
+Only makes sense if the process is running as root. 
+Both numerical user ids and user names are acceptable.
+
+=item group
+
+If set, specifies that the group of the newly created log file should
+be different from the effective group id of the running process.
+Only makes sense if the process is running as root.
+Both numerical group ids and group names are acceptable.
+
 =item utf8
 
 If you're printing out Unicode strings, the output filehandle needs
@@ -254,6 +352,24 @@ this will happen C<recreate_check_interval> seconds after the file
 has been moved or deleted. If this is undesirable,
 setting C<recreate_check_interval> to 0 will have the appender
 appender check the file with I<every> call to C<log()>.
+
+=item recreate_signal
+
+In C<recreate> mode, if this option is set to a signal name
+(e.g. "USR1"), the appender will recreate a missing logfile
+when it receives the signal. It uses less resources than constant
+polling. The usual limitation with perl's signal handling apply.
+Check the FAQ for using this option with the log rotating 
+utility C<newsyslog>.
+
+=item recreate_pid_write
+
+The popular log rotating utility C<newsyslog> expects a pid file
+in order to send the application a signal when its logs have
+been rotated. This option expects a path to a file where the pid
+of the currently running application gets written to.
+Check the FAQ for using this option with the log rotating 
+utility C<newsyslog>.
 
 =back
 

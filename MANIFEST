@@ -7,6 +7,7 @@ eg/log4j-file-append-perl.conf
 eg/log4j-manual-1.conf
 eg/log4j-manual-2.conf
 eg/log4j-manual-3.conf
+eg/newsyslog-test
 eg/override_appender
 eg/prototype
 eg/syslog.pl
@@ -60,9 +61,9 @@ lib/Log/Log4perl/NDC.pm
 lib/Log/Log4perl/Util.pm
 LICENSE
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 MANIFEST.SKIP
-META.yml			Module meta-data (added by MakeMaker)
+META.yml
 README
 t/001Level.t
 t/002Logger.t

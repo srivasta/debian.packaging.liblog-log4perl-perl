@@ -16,7 +16,7 @@ use Log::Log4perl::Appender;
 
 use constant _INTERNAL_DEBUG => 1;
 
-our $VERSION = '1.04';
+our $VERSION = '1.06';
 
    # set this to '1' if you're using a wrapper
    # around Log::Log4perl
@@ -312,7 +312,7 @@ sub easy_init { # Initialize the root logger with a screen appender
             }
             $logger->{file} =~ /^(>)?(>)?/;
             my $mode = ($2 ? "append" : "write");
-            $logger->{file} =~ s/.*>+//g;
+            $logger->{file} =~ s/.*>+\s*//g;
             $app = Log::Log4perl::Appender->new(
                 "Log::Log4perl::Appender::File",
                 filename => $logger->{file},
@@ -644,8 +644,8 @@ In this case, C<Log::Log4perl> will walk up the class hierarchy
 defined somewhere. In the case above, the log level at the root
 (root I<always> defines a log level, but not necessarily an appender)
 defines that 
-the log level is supposed to be C<ERROR> -- meaning that I<debug>
-and I<info> messages are suppressed.
+the log level is supposed to be C<ERROR> -- meaning that I<DEBUG>
+and I<INFO> messages are suppressed.
 
 =head2 Log Levels
 
@@ -901,7 +901,7 @@ how it works:
     log4j.appender.A1.layout=org.apache.log4j.PatternLayout
     log4j.appender.A1.layout.ConversionPattern=%-4r %-5p %c %x - %m%n
 
-This enables messages of priority C<debug> or higher in the root
+This enables messages of priority C<DEBUG> or higher in the root
 hierarchy and has the system write them to the console. 
 C<ConsoleAppender> is a Java appender, but C<Log::Log4perl> jumps
 through a significant number of hoops internally to map these to their
@@ -1205,15 +1205,15 @@ Here's how it works:
     # Turn off logging in a lower-level category while keeping
     # it active in higher-level categories.
     ############################################################
-    log4perl.rootLogger=debug, LOGFILE
-    log4perl.logger.deep.down.the.hierarchy = error, LOGFILE
+    log4perl.rootLogger=DEBUG, LOGFILE
+    log4perl.logger.deep.down.the.hierarchy = ERROR, LOGFILE
 
     # ... Define appenders ...
 
 This way, log messages issued from within 
 C<Deep::Down::The::Hierarchy> and below will be
-logged only if they're C<error> or worse, while in all other system components
-even C<debug> messages will be logged.
+logged only if they're C<ERROR> or worse, while in all other system components
+even C<DEBUG> messages will be logged.
 
 =head2 Return Values
 
@@ -1421,7 +1421,7 @@ a hash, you can just as well initialize C<Log::Log4perl> with
 a reference to it:
 
     my %key_value_pairs = (
-        "log4perl.rootLogger"       => "error, LOGFILE",
+        "log4perl.rootLogger"       => "ERROR, LOGFILE",
         "log4perl.appender.LOGFILE" => "Log::Log4perl::Appender::File",
         ...
     );
@@ -2498,23 +2498,12 @@ our
     Mike Schilli <m@perlmeister.com>
     Kevin Goess <cpan@goess.org>
 
-    Contributors:
-    Hutton Davidson <Davidson.Hutton@ftid.com>
-    Chris R. Donnelly <cdonnelly@digitalmotorworks.com>
-    Matisse Enzer
-    James FitzGibbon <james.fitzgibbon@target.com>
-    Carl Franks
-    Dennis Gregorovic <dgregor@redhat.com>
-    Paul Harrington <Paul-Harrington@deshaw.com>
-    David Hull <hull@paracel.com>
-    Jeff Macdonald <jeff.macdonald@e-dialog.com>
-    Markus Peter <warp@spin.de>
-    Brett Rann <brettrann@mail.com>
-    Erik Selberg <erik@selberg.com>
-    Aaron Straup Cope <asc@vineyard.net>
-    Lars Thegler <lars@thegler.dk>
-    David Viner <dviner@yahoo-inc.com>
-    Mac Yang <mac@proofpoint.com>
+    Contributors (in alphabetical order):
+    Hutton Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco,
+    James FitzGibbon, Carl Franks, Dennis Gregorovic, Paul
+    Harrington, David Hull, Robert Jacobson, Jeff Macdonald, Markus
+    Peter, Brett Rann, Erik Selberg, Aaron Straup Cope, Lars Thegler,
+    David Viner, Mac Yang.
 
 =head1 COPYRIGHT AND LICENSE
 

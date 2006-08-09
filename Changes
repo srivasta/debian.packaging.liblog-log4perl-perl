@@ -2,7 +2,34 @@
  Revision history for Log::Log4perl
 ##################################################
 
+1.06 2006/07/18
+    *   (ms) Applied patch by Robert Jacobson to fix day-of-year in
+             DateFormat, which was off by one.
+    *   (ms) Added FAQ on syslog
+    *   (ms) umask values for the file appender are now also accepted 
+             in octal form (0xxx).
+    *   (ms) The file appender now accepts owner/group settings of
+             newly created log files.
+    *   (ms) Fixed appender cleanup, a bug caused composite appenders
+             to be cleaned up during global destruction, which caused an
+             ugly segfault with the Synchronized appender on FreeBSD.
+
+1.05 2006/06/10
+    *   (ms) Added recreate signal handler to L4p::Appender::File for
+             newsyslog support. Two new FAQ entries on dealing with 
+             newsyslog and log files being removed by external apps.
+    *   (ms) L4p::Config::Watch no longer sets the global $SIGNAL_CAUGHT by
+             default but uses an instance variable instead to prevent
+             clobbering L4p's config and watch mechanism.
+    *   (ms) die() on undefined configuration (rt 18103 by justice8@wanadoo.fr)
+    *   (ms) Hugh Esco submitted a FAQ on where to put logfiles
+    *   (ms) Applied patch provided by Chia-liang Kao to suppress an error
+             message and skip tests in the suite when DBI is missing.
+
 1.04 2006/02/26
+    *  (ms) Duplicate log4perl directives, which previously just overwrote
+            existing ones, are no longer permitted and cause the config
+            parser to throw an error.
     *  (ms) If a conversion pattern was specified twice in a config
             file, the output was "ARRAY(0x804da00)" (bug reported by
             Bill Mason). Now, gobbling up property configurator values
