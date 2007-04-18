@@ -365,6 +365,11 @@ C<$SIG{__DIE__}> pseudo signal handler
     use Log::Log4perl qw(get_logger);
 
     $SIG{__DIE__} = sub {
+        if($^S) {
+            # We're in an eval {} and don't want log
+            # this message but catch it later
+            return;
+        }
         $Log::Log4perl::caller_depth++;
         my $logger = get_logger("");
         $logger->fatal(@_);
@@ -372,7 +377,8 @@ C<$SIG{__DIE__}> pseudo signal handler
     };
 
 This will catch every C<die()>-Exception of your
-application or the modules it uses. It
+application or the modules it uses. In case you want to 
+It
 will fetch a root logger and pass on the C<die()>-Message to it.
 If you make sure you've configured with a root logger like this:
 
@@ -1663,6 +1669,11 @@ If, on the other hand, catching C<die()> and friends is
 required, a C<__DIE__> handler is appropriate:
 
     $SIG{__DIE__} = sub {
+        if($^S) {
+            # We're in an eval {} and don't want log
+            # this message but catch it later
+            return;
+        }
         $Log::Log4perl::caller_depth++;
         LOGDIE @_;
     };
@@ -2163,7 +2174,7 @@ However, this is fairly expensive. A better approach is to define
 a signal handler:
 
     log4perl.appender.Logfile.recreate = 1
-    log4perl.appender.Logfile.recreate_signal  = USR1
+    log4perl.appender.Logfile.recreate_check_signal  = USR1
     log4perl.appender.Logfile.recreate_pid_write = /tmp/myappid
 
 As a service for C<newsyslog> users, Log4perl's file appender writes
@@ -2257,6 +2268,82 @@ Remote-controlling logging in the hierarchical parts of an application
 via Log4perl's categories is one of its most distinguished features.
 It allows for enabling high debug levels in specified areas without
 noticable performance impact.
+
+=head2 I want to use UTC instead of the local time!
+
+If a layout defines a date, Log::Log4perl uses local time to populate it.
+If you want UTC instead, set
+
+    $Log::Log4perl::DateFormat::GMTIME = 1;
+
+in your program before the first log statement.
+
+=head2 Can Log4perl intercept messages written to a filehandle?
+
+You have a function that prints to a filehandle. You want to tie
+into that filehandle and forward all arriving messages to a
+Log4perl logger.
+
+First, let's write a package that ties a file handle and forwards it
+to a Log4perl logger:
+
+    package FileHandleLogger;
+    use Log::Log4perl qw(:levels get_logger);
+
+    sub TIEHANDLE {
+       my($class, %options) = @_;
+
+       my $self = {
+           level    => $DEBUG,
+           category => '',
+           %options
+       };
+
+       $self->{logger} = get_logger($self->{category}),
+       bless $self, $class;
+    }
+
+    sub PRINT {
+        my($self, @rest) = @_;
+        $Log::Log4perl::caller_depth++;
+        $self->{logger}->log($self->{level}, @rest);
+        $Log::Log4perl::caller_depth--;
+    }
+
+    sub PRINTF {
+        my($self, $fmt, @rest) = @_;
+        $Log::Log4perl::caller_depth++;
+        $self->PRINT(sprintf($fmt, @rest));
+        $Log::Log4perl::caller_depth--;
+    }
+
+    1;
+
+Now, if you have a function like
+
+    sub function_printing_to_fh {
+        my($fh) = @_;
+        printf $fh "Hi there!\n";
+    }
+
+which takes a filehandle and prints something to it, it can be used
+with Log4perl:
+
+    use Log::Log4perl qw(:easy);
+    usa FileHandleLogger;
+
+    Log::Log4perl->easy_init($DEBUG);
+
+    tie *SOMEHANDLE, 'FileHandleLogger' or
+        die "tie failed ($!)";
+
+    function_printing_to_fh(*SOMEHANDLE);
+        # prints "2007/03/22 21:43:30 Hi there!"
+
+If you want, you can even specify a different log level or category:
+
+    tie *SOMEHANDLE, 'FileHandleLogger',
+        level => $INFO, category => "Foo::Bar" or die "tie failed ($!)";
 
 =cut
 

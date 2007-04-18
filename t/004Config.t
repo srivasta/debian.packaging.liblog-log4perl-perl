@@ -7,7 +7,7 @@
 # change 'tests => 1' to 'tests => last_test_to_print';
 #########################
 use Test::More;
-BEGIN { plan tests => 15 };
+BEGIN { plan tests => 23 };
 
 use Log::Log4perl;
 use Log::Log4perl::Appender::TestBuffer;
@@ -202,7 +202,7 @@ is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(),
 ######################################################################
 open STDERR, ">$TMP_FILE";
 open IN, "<$TMP_FILE" or die "Cannot open $TMP_FILE";
-sub readwarn { return scalar <IN>; }
+sub readwarn { return (scalar <IN>) || ''; }
 END { close IN }
 
 Log::Log4perl->init(\ <<EOT);
@@ -212,6 +212,8 @@ EOT
 like(readwarn(), qr/looks suspicious: No loggers/, 
      "Test integrity check on empty conf file");
 
+close STDERR;
+close IN;
 unlink $TMP_FILE;
 
 ######################################################################
@@ -233,6 +235,8 @@ EOT
 
 is(readwarn(), "", "Autocorrecting rootLogger/rootlogger typo");
 
+close STDERR;
+close IN;
 unlink $TMP_FILE;
 
 ######################################################################
@@ -255,4 +259,85 @@ EOT
 like(readwarn(), qr/looks suspicious: No loggers/, 
      "Test integrity check on totally misspelled rootLogger typo");
 
+close STDERR;
+close IN;
 unlink $TMP_FILE;
+
+######################################################################
+# PatternLayout %m{}
+######################################################################
+Log::Log4perl::Appender::TestBuffer->reset();
+
+Log::Log4perl->init(\ <<EOT);
+log4j.logger.foo=DEBUG, A1
+log4j.appender.A1=Log::Log4perl::Appender::TestBuffer
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern=%M%m
+EOT
+
+###########################################
+sub somefunc {
+###########################################
+    $logger = Log::Log4perl->get_logger("foo");
+    $logger->debug("Gurgel");
+}
+
+package SomePackage;
+###########################################
+sub somepackagefunc {
+###########################################
+    $logger = Log::Log4perl->get_logger("foo");
+    $logger->debug("Gurgel");
+}
+package main;
+
+somefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(),
+        "main::somefuncGurgel", "%M main");
+
+Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer("");
+SomePackage::somepackagefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(), 
+        "SomePackage::somepackagefuncGurgel", "%M in package");
+
+######################################################################
+# PatternLayout %m{1}
+######################################################################
+Log::Log4perl::Appender::TestBuffer->reset();
+
+Log::Log4perl->init(\ <<EOT);
+log4j.logger.foo=DEBUG, A1
+log4j.appender.A1=Log::Log4perl::Appender::TestBuffer
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern=%M{1}%m
+EOT
+
+somefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(),
+        "somefuncGurgel", "%M{1} main");
+
+Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer("");
+SomePackage::somepackagefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(), 
+        "somepackagefuncGurgel", "%M{1} package");
+
+######################################################################
+# Test accessors
+######################################################################
+$parser = Log::Log4perl::Config::PropertyConfigurator->new();
+@lines = split "\n", <<EOT;
+log4j.rootLogger         = DEBUG, A1
+log4j.appender.A1        = Log::Log4perl::Appender::TestBuffer
+log4j.appender.A1.layout = org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern = object%m%n
+EOT
+$parser->text(\@lines);
+$parser->parse();
+is($parser->value("log4j.rootLogger"), "DEBUG, A1", "value() accessor");
+is($parser->value("log4j.foobar"), undef, "value() accessor undef");
+
+is($parser->value("log4j.appender.A1"), 
+   "Log::Log4perl::Appender::TestBuffer", "value() accessor");
+
+is($parser->value("log4perl.appender.A1.layout.ConversionPattern"), 
+   "object%m%n", "value() accessor log4perl");
