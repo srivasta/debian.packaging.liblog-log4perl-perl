@@ -11,7 +11,7 @@ January February March April May June July
 August September October November December);
 
 my @WEEK_DAYS = qw(
-Sunday Monday Tuesday Wednesday Thursday Friday);
+Sunday Monday Tuesday Wednesday Thursday Friday Saturday);
 
 ###########################################
 sub new {
@@ -192,7 +192,7 @@ sub rep {
 ######################
     } elsif($first eq "D") {
         push @{$self->{stack}}, [7, sub { $_[0] + 1}];
-        return "%${len}s";
+        return "%0" . $len . "d";
 
 ######################
 #a - am/pm marker    #
