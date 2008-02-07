@@ -16,7 +16,7 @@ use Log::Log4perl::Appender;
 
 use constant _INTERNAL_DEBUG => 1;
 
-our $VERSION = '1.10';
+our $VERSION = '1.14';
 
    # set this to '1' if you're using a wrapper
    # around Log::Log4perl
@@ -123,8 +123,9 @@ sub import {
         ${$caller_pkg . '::_default_logger'} = $logger;
         
             # Define DEBUG, INFO, etc. routines in caller's package
-        for(qw(DEBUG INFO WARN ERROR FATAL)) {
+        for(qw(TRACE DEBUG INFO WARN ERROR FATAL ALWAYS)) {
             my $level   = $_;
+            $level = "OFF" if $level eq "ALWAYS";
             my $lclevel = lc($_);
             *{"$caller_pkg\::$_"} = sub { 
                 Log::Log4perl::Logger::init_warn() unless 
@@ -649,17 +650,18 @@ and I<INFO> messages are suppressed.
 
 =head2 Log Levels
 
-There are five predefined log levels: C<FATAL>, C<ERROR>, C<WARN>, C<INFO> 
-and C<DEBUG> (in descending priority). Your configured logging level
+There are five predefined log levels: C<FATAL>, C<ERROR>, C<WARN>, C<INFO>,
+C<DEBUG>, and C<TRACE> (in descending priority). Your configured logging level
 has to at least match the priority of the logging message.
 
 If your configured logging level is C<WARN>, then messages logged 
-with C<info()> and C<debug()> message will be suppressed. 
+with C<info()>, C<debug()>, and C<trace()> will be suppressed. 
 C<fatal()>, C<error()> and C<warn()> will make their way through,
 because their priority is higher or equal than the configured setting.
 
 Instead of calling the methods
 
+    $logger->trace("...");  # Log a trace message
     $logger->debug("...");  # Log a debug message
     $logger->info("...");   # Log a info message
     $logger->warn("...");   # Log a warn message
@@ -671,6 +673,7 @@ using the constants defined in C<Log::Log4perl::Level>:
 
     use Log::Log4perl::Level;
 
+    $logger->log($TRACE, "...");
     $logger->log($DEBUG, "...");
     $logger->log($INFO, "...");
     $logger->log($WARN, "...");
@@ -686,6 +689,7 @@ If you need to find out if the currently configured logging
 level would allow a logger's logging statement to go through, use the
 logger's C<is_I<level>()> methods:
 
+    $logger->is_trace()    # True if trace messages would go through
     $logger->is_debug()    # True if debug messages would go through
     $logger->is_info()     # True if info messages would go through
     $logger->is_warn()     # True if warn messages would go through
@@ -1862,10 +1866,15 @@ your log statements to a file, you can use the following features:
 In C<:easy> mode, C<Log::Log4perl> will instantiate a I<stealth logger>
 named C<$_default_logger> and import it into the current package. Also,
 it will introduce the
-convenience functions C<DEBUG()>, C<INFO()>, C<WARN()>, 
-C<ERROR()> and C<FATAL()> into the package namespace,
-which take arguments and forward them to C<_default_logger-E<gt>debug()>,
+convenience functions C<TRACE>, C<DEBUG()>, C<INFO()>, C<WARN()>, 
+C<ERROR()>, C<FATAL()>, and C<ALWAYS> into the package namespace.
+These functions simply take messages as
+arguments and forward them to C<_default_logger-E<gt>debug()>,
 C<_default_logger-E<gt>info()> and so on.
+If a message should never be blocked, regardless of the log level,
+use the C<ALWAYS> function which corresponds to a log level of C<OFF>:
+
+    ALWAYS "This will be printed regardless of the log level";
 
 The C<easy_init> method can be called with a single level value to
 create a STDERR appender and a root logger as in
@@ -2033,12 +2042,13 @@ the C<get> method:
     my $value = Log::Log4perl::MDC->get($key);
 
 If no value has been stored previously under C<$key>, the C<get> method
-will return the string C<"[undef]"> to allow for easy string interpolation
-later on.
+will return C<undef>.
 
 Typically, MDC values are retrieved later on via the C<"%X{...}"> placeholder
-in C<Log::Log4perl::Layout::PatternLayout>.
-For example, an application taking a web request might store the remote host
+in C<Log::Log4perl::Layout::PatternLayout>. If the C<get()> method
+returns C<undef>, the placeholder will expand to the string C<[undef]>.
+
+An application taking a web request might store the remote host
 like
 
     Log::Log4perl::MDC->put("remote_host", $r->headers("HOST"));
@@ -2113,6 +2123,22 @@ the following:
 
     ###l4p Log::Log4perl->easy_init($DEBUG);
     ###l4p DEBUG "It works!";
+
+As of C<Log::Log4perl> 1.12, you can even force I<all> modules
+loaded by a script to have their hidden Log4perl statements
+resurrected. For this to happen, load C<Log::Log4perl::Resurrector>
+I<before> loading any modules:
+
+    use Log::Log4perl qw(:easy);
+    use Log::Log4perl::Resurrector;
+
+    use Foobar; # All hidden Log4perl statements in here will
+                # be uncommented before Foobar gets loaded.
+
+    Log::Log4perl->easy_init($DEBUG);
+    ...
+
+Check the C<Log::Log4perl::Resurrector> manpage for more details.
 
 =head2 Access defined appenders
 
@@ -2498,15 +2524,15 @@ our
     Kevin Goess <cpan@goess.org>
 
     Contributors (in alphabetical order):
-    Ateeq Altaf, Jeremy Bopp, Hutton Davidson, Chris R. Donnelly,
-    Matisse Enzer, Hugh Esco, James FitzGibbon, Carl Franks, Dennis
-    Gregorovic, Paul Harrington, David Hull, Robert Jacobson, Jeff
-    Macdonald, Markus Peter, Brett Rann, Erik Selberg, Aaron Straup
-    Cope, Lars Thegler, David Viner, Mac Yang.
+    Ateeq Altaf, Cory Bennett, Jeremy Bopp, Hutton Davidson, Chris R.
+    Donnelly, Matisse Enzer, Hugh Esco, James FitzGibbon, Carl Franks,
+    Dennis Gregorovic, Paul Harrington, David Hull, Robert Jacobson,
+    Jeff Macdonald, Markus Peter, Brett Rann, Erik Selberg, Aaron
+    Straup Cope, Lars Thegler, David Viner, Mac Yang.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2004 by Mike Schilli E<lt>m@perlmeister.comE<gt> and Kevin Goess
+Copyright 2002-2007 by Mike Schilli E<lt>m@perlmeister.comE<gt> and Kevin Goess
 E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
