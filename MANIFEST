@@ -99,6 +99,7 @@ t/025CustLevels.t
 t/026FileApp.t
 t/027Watch2.t
 t/027Watch3.t
+t/027Watch4.t
 t/028Additivity.t
 t/029SysWide.t
 t/030LDLevel.t
@@ -126,6 +127,8 @@ t/052Utf8.t
 t/053Resurrect.t
 t/054Subclass.t
 t/055AppDestroy.t
+t/056SyncApp2.t
+t/057MsgChomp.t
 t/compare.pl
 t/deeper1.expected
 t/deeper6.expected

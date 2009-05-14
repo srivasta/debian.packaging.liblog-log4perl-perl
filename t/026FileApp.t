@@ -1,6 +1,6 @@
 #Testing if the file-appender appends in default mode
 
-use Test;
+use Test::More;
 
 use warnings;
 use strict;
@@ -8,7 +8,7 @@ use strict;
 use Log::Log4perl;
 use File::Spec;
 
-our $LOG_DISPATCH_PRESENT = 0;
+our $LOG_DISPATCH_PRESENT;
 
 BEGIN { 
     eval { require Log::Dispatch; };
@@ -27,7 +27,7 @@ unless (-e "$WORK_DIR"){
 
 my $testfile = File::Spec->catfile($WORK_DIR, "test26.log");
 
-BEGIN {plan tests => 16}
+BEGIN {plan tests => 20}
 
 END { 
     unlink_testfiles();
@@ -69,7 +69,7 @@ open FILE, "<$testfile" or die "Cannot create $testfile";
 my $content = join '', <FILE>;
 close FILE;
 
-ok($content, "previous content\nINFO - Shu-wa-chi!\n");
+is($content, "previous content\nINFO - Shu-wa-chi!\n");
 
 ####################################################
 # Clobber the log file if overwriting is required
@@ -90,7 +90,7 @@ open FILE, "<$testfile" or die "Cannot create $testfile";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - Shu-wa-chi!\n");
+is($content, "INFO - Shu-wa-chi!\n");
 
 ####################################################
 # Explicetly say "append"
@@ -111,13 +111,15 @@ open FILE, "<$testfile" or die "Cannot create $testfile";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - Shu-wa-chi!\nINFO - Shu-wa-chi!\n");
+is($content, "INFO - Shu-wa-chi!\nINFO - Shu-wa-chi!\n");
 
 #########################################################
 # Mix Log::Dispatch and Log::Log4perl::Appender appenders
 #########################################################
-if($LOG_DISPATCH_PRESENT) {
-    $data = <<EOT;
+SKIP: {
+  skip "Skipping Log::Dispatch tests", 2 unless $LOG_DISPATCH_PRESENT;
+
+$data = <<EOT;
 log4perl.category = INFO, FileAppndr1, FileAppndr2
 log4perl.appender.FileAppndr1          = Log::Dispatch::File
 log4perl.appender.FileAppndr1.filename = ${testfile}_1
@@ -130,23 +132,18 @@ log4perl.appender.FileAppndr2.mode     = append
 log4perl.appender.FileAppndr2.layout   = Log::Log4perl::Layout::SimpleLayout
 EOT
 
-    Log::Log4perl::init(\$data);
-    $log = Log::Log4perl::get_logger("");
-    $log->info("Shu-wa-chi!");
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("Shu-wa-chi!");
 
-    for(qw(1 2)) {
-        open FILE, "<${testfile}_$_" or die "Cannot open ${testfile}_$_";
-        $content = join '', <FILE>;
-        close FILE;
-    
-        ok($content, "INFO - Shu-wa-chi!\n");
-    }
+for(qw(1 2)) {
+    open FILE, "<${testfile}_$_" or die "Cannot open ${testfile}_$_";
+    $content = join '', <FILE>;
+    close FILE;
 
-} else {
-    # We don't have Log::Dispatch, skip these cases
-    ok(1);
-    ok(1);
+    is($content, "INFO - Shu-wa-chi!\n");
 }
+};
 
 #########################################################
 # Check if the 0.33 Log::Log4perl::Appender::File bug is
@@ -175,7 +172,7 @@ for(qw(1 2)) {
     $content = join '', <FILE>;
     close FILE;
 
-    ok($content, "INFO - Shu-wa-chi!\n");
+    is($content, "INFO - Shu-wa-chi!\n");
 }
 
 #########################################################
@@ -202,10 +199,10 @@ for(qw(1 2)) {
     $content = join '', <FILE>;
     close FILE;
 
-    ok($content, "INFO - File$_\n");
+    is($content, "INFO - File$_\n");
 }
 
-ok($app->filename(), "${testfile}_2");
+is($app->filename(), "${testfile}_2");
 
 #########################################################
 # Testing syswrite
@@ -227,7 +224,7 @@ open FILE, "<${testfile}_1" or die "Cannot open ${testfile}_1";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - File1\n");
+is($content, "INFO - File1\n");
 
 Log::Log4perl::init(\$data);
 $log->info("File1");
@@ -236,7 +233,7 @@ open FILE, "<${testfile}_1" or die "Cannot open ${testfile}_1";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - File1\n");
+is($content, "INFO - File1\n");
 
 #########################################################
 # Testing syswrite with append
@@ -258,7 +255,94 @@ open FILE, "<${testfile}_1" or die "Cannot open ${testfile}_1";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - File1\nINFO - File1\n");
+is($content, "INFO - File1\nINFO - File1\n");
+
+#########################################################
+# Testing syswrite and recreate
+#########################################################
+SKIP: {
+  skip "File recreation not supported on Win32", 1 if $^O eq "MSWin32";
+$data = <<EOT;
+log4perl.category = INFO, FileAppndr1
+log4perl.appender.FileAppndr1          = Log::Log4perl::Appender::File
+log4perl.appender.FileAppndr1.filename = ${testfile}_1
+log4perl.appender.FileAppndr1.syswrite = 1
+log4perl.appender.FileAppndr1.recreate = 1
+log4perl.appender.FileAppndr1.recreate_check_interval = 0
+log4perl.appender.FileAppndr1.mode     = write
+log4perl.appender.FileAppndr1.layout   = Log::Log4perl::Layout::SimpleLayout
+EOT
+
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("File1");
+
+unlink "${testfile}_1";
+
+$log->info("File1-1");
+
+open FILE, "<${testfile}_1" or die "Cannot open ${testfile}_1";
+$content = join '', <FILE>;
+close FILE;
+
+is($content, "INFO - File1-1\n");
+};
+
+#########################################################
+# Testing syswrite and recreate without check_interval
+#########################################################
+$data = <<EOT;
+log4perl.category = INFO, FileAppndr1
+log4perl.appender.FileAppndr1          = Log::Log4perl::Appender::File
+log4perl.appender.FileAppndr1.filename = ${testfile}_1
+log4perl.appender.FileAppndr1.syswrite = 1
+log4perl.appender.FileAppndr1.recreate = 1
+log4perl.appender.FileAppndr1.mode     = write
+log4perl.appender.FileAppndr1.layout   = Log::Log4perl::Layout::SimpleLayout
+EOT
+
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("File1");
+
+unlink "${testfile}_1";
+
+eval { $log->info("File1-1"); };
+
+is($@, "", "no error on moved file/syswrite");
+
+SKIP: {
+  skip "Signals not supported on Win32", 2 if $^O eq "MSWin32";
+
+#########################################################
+# Testing syswrite and recreate_check_signal
+#########################################################
+$data = <<EOT;
+log4perl.category = INFO, FileAppndr1
+log4perl.appender.FileAppndr1          = Log::Log4perl::Appender::File
+log4perl.appender.FileAppndr1.filename = ${testfile}_1
+log4perl.appender.FileAppndr1.syswrite = 1
+log4perl.appender.FileAppndr1.recreate = 1
+log4perl.appender.FileAppndr1.recreate_check_signal = USR1
+log4perl.appender.FileAppndr1.mode     = write
+log4perl.appender.FileAppndr1.layout   = Log::Log4perl::Layout::SimpleLayout
+EOT
+
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("File1");
+
+unlink "${testfile}_1";
+
+is(kill('USR1', $$), 1, "sending signal");
+$log->info("File1");
+
+open FILE, "<${testfile}_1" or die "Cannot open ${testfile}_1";
+$content = join '', <FILE>;
+close FILE;
+
+is($content, "INFO - File1\n");
+};
 
 #########################################################
 # Testing create_at_logtime
@@ -283,7 +367,7 @@ open FILE, "<${testfile}_3" or die "Cannot open ${testfile}_3";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "INFO - File1\n");
+is($content, "INFO - File1\n");
 
 unlink "${testfile}_3";
 
@@ -303,5 +387,5 @@ open FILE, "<${testfile}_4" or die "Cannot open ${testfile}_4";
 $content = join '', <FILE>;
 close FILE;
 
-ok($content, "This is a nice header.\n", "header_text");
+is($content, "This is a nice header.\n", "header_text");
 
