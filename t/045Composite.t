@@ -3,6 +3,13 @@
 # Mike Schilli, 2004 (m@perlmeister.com)
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 use warnings;
 use strict;
 
@@ -17,7 +24,7 @@ BEGIN {
                                                # early Perl versions dont
                                                # have it.
     }else{
-        plan tests => 15;
+        plan tests => 18;
     }
 }
 
@@ -237,3 +244,86 @@ get_logger("")->add_appender($limitApp);
 get_logger("")->level($DEBUG);
 get_logger("wonk")->debug("waah!");
 is($buffer->buffer(), "waah!\n", "composite api init");
+
+### Wrong %M with caching appender
+#
+Log::Log4perl->reset();
+Log::Log4perl::Appender::TestBuffer->reset();
+
+$conf = qq(
+  log4perl.category = WARN, Limiter
+
+    # TestBuffer appender
+  log4perl.appender.Buffer          = Log::Log4perl::Appender::TestBuffer
+  log4perl.appender.Buffer.layout   = PatternLayout
+  log4perl.appender.Buffer.layout.ConversionPattern=%d cat=%c meth=%M %m %n
+
+    # Limiting appender, using the email appender above
+  log4perl.appender.Limiter         = Log::Log4perl::Appender::Limit
+  log4perl.appender.Limiter.appender     = Buffer
+  log4perl.appender.Limiter.block_period = 3600
+  log4perl.appender.Limiter.max_until_flushed = 2
+);
+
+Log::Log4perl->init(\$conf);
+
+$logger = get_logger();
+
+$logger->warn("Sent from main");
+
+package Willy::Wonka;
+sub func {
+    use Log::Log4perl qw(get_logger);
+    my $logger = get_logger();
+    $logger->warn("Sent from func");
+}
+package main;
+
+Willy::Wonka::func();
+$logger->warn("Sent from main");
+
+$buffer = Log::Log4perl::Appender::TestBuffer->by_name("Buffer");
+like($buffer->buffer(), 
+     qr/cat=main meth=main::.*cat=Willy.Wonka meth=Willy::Wonka::func/s,
+     "%M/%c with composite appender");
+
+### Different caller stacks with normal vs. composite appenders
+Log::Log4perl->reset();
+
+$conf = qq(
+  log4perl.category = WARN, Buffer1, Composite
+
+    # 1st TestBuffer appender
+  log4perl.appender.Buffer1          = Log::Log4perl::Appender::TestBuffer
+  log4perl.appender.Buffer1.layout   = PatternLayout
+  log4perl.appender.Buffer1.layout.ConversionPattern=meth=%M %m %n
+
+    # 2nd TestBuffer appender
+  log4perl.appender.Buffer2          = Log::Log4perl::Appender::TestBuffer
+  log4perl.appender.Buffer2.layout   = PatternLayout
+  log4perl.appender.Buffer2.layout.ConversionPattern=meth=%M %m %n
+
+    # Composite Appender
+  log4perl.appender.Composite         = Log::Log4perl::Appender::Buffer
+  log4perl.appender.Composite.appender     = Buffer2
+  log4perl.appender.Composite.trigger = sub { 1 }
+);
+
+Log::Log4perl->init(\$conf);
+
+my $buffer1 = Log::Log4perl::Appender::TestBuffer->by_name("Buffer1");
+my $buffer2 = Log::Log4perl::Appender::TestBuffer->by_name("Buffer2");
+
+$logger = get_logger();
+
+$logger->warn("Sent from main");
+
+Willy::Wonka::func();
+
+like $buffer1->buffer(), 
+    qr/meth=main:: Sent from main.*meth=Willy::Wonka::func Sent from func/s,
+    "caller stack from direct appender";
+like $buffer2->buffer(),
+    qr/meth=main:: Sent from main.*meth=Willy::Wonka::func Sent from func/s,
+    "caller stack from composite appender";
+

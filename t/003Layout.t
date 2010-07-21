@@ -3,6 +3,13 @@
 # Mike Schilli, 2002 (m@perlmeister.com)
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 use warnings;
 use strict;
 
@@ -10,7 +17,7 @@ use strict;
 # change 'tests => 1' to 'tests => last_test_to_print';
 #########################
 use Test::More;
-BEGIN { plan tests => 21 };
+BEGIN { plan tests => 23 };
 
 use Log::Log4perl;
 use Log::Log4perl::Layout;
@@ -30,11 +37,12 @@ $logger->add_appender($app);
 my $layout = Log::Log4perl::Layout::PatternLayout->new(
     "bugo %% %c{2} %-17F{2} %L hugo");
 $app->layout($layout);
+my $line = __LINE__ + 1;
 $logger->debug("That's the message");
 
 is($app->buffer(), "bugo % def.ghi " . 
                    File::Spec->catfile(qw(t 003Layout.t)) .
-                   "     33 hugo"); 
+                   "     $line hugo"); 
 
 ############################################################
 # Log the message
@@ -124,9 +132,10 @@ is($app->buffer(), 'main::: That\'s the message');
 $app->buffer("");
 $layout = Log::Log4perl::Layout::PatternLayout->new("%F-%L %m");
 $app->layout($layout);
+$line = __LINE__ + 1;
 $logger->debug("That's the message");
 
-like($app->buffer(), qr/003Layout.t-127 That's the message/); 
+like($app->buffer(), qr/003Layout.t-$line That's the message/); 
 
 ############################################################
 # Don't append a newline if the message already contains one
@@ -233,6 +242,26 @@ eval {
     $logger->debug("Thats the message");
 };
 is($app->buffer(), 'main::: Thats the message'); 
+
+############################################################
+# Non-portable line breaks
+############################################################
+
+$app->buffer("");
+$layout = Log::Log4perl::Layout::PatternLayout->new("%m\\n");
+$app->layout($layout);
+eval {
+    $logger->debug("Thats the message");
+};
+is($app->buffer(), "Thats the message\n"); 
+
+$app->buffer("");
+$layout = Log::Log4perl::Layout::PatternLayout->new("%m\\r\\n");
+$app->layout($layout);
+eval {
+    $logger->debug("Thats the message");
+};
+is($app->buffer(), "Thats the message\r\n"); 
 
 ############################################################
 # Render a multiline message
