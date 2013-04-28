@@ -1,0 +1,13 @@
+This is Debian Linux's prepackaged version of Log4perl.
+
+Log::Log4perl is a Perl port of the widely popular log4j logging package.
+
+This version was put together by Manoj Srivastava <srivasta@debian.org>,
+from the sources at the URL <URL:http://log4perl.sourceforge.net/>
+
+The changes in this package are essentially the addition of support
+for the Debian package maintenance scheme, by adding various debian.*
+files.  There were some changes made to the makefile and config.h
+files to make the layout more suitable for Debian policy.
+
+arch-tag: 74262f02-7055-494b-8a29-5684850e53ae
