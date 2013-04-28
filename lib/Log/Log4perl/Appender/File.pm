@@ -284,7 +284,7 @@ Log::Log4perl::Appender::File - Log to file
 This is a simple appender for writing to a file.
 
 The C<log()> method takes a single scalar. If a newline character
-should terminate the message, it has to be added explicitely.
+should terminate the message, it has to be added explicitly.
 
 Upon destruction of the object, the filehandle to access the
 file is flushed and closed.
