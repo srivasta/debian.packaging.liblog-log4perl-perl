@@ -59,7 +59,7 @@ close FILE;
 
 ####################################################
 # Append to a log file without specifying append mode
-# explicitely
+# explicitly
 ####################################################
 my $data = <<EOT;
 log4j.category = INFO, FileAppndr

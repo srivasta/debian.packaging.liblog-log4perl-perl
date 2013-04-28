@@ -1436,7 +1436,7 @@ C<"append"> mode, the OS kernel ensures that multiple processes share
 one end-of-file marker, ensuring that each process writes to the I<real> 
 end of the file. (The value of C<"append"> 
 for the C<mode> parameter is the default setting in Log4perl's file 
-appender so you don't have to set it explicitely.)
+appender so you don't have to set it explicitly.)
 
       # Guarantees atomic writes
 
@@ -1778,7 +1778,7 @@ you'll get an error message like
 Why? At compile time, C<pp> didn't realize that 
 C<Log::Log4perl::Appender::Screen> would be needed later on and didn't
 wrap it into the executable created. To avoid this, either say
-C<use Log::Log4perl::Appender::Screen> in the script explicitely or
+C<use Log::Log4perl::Appender::Screen> in the script explicitly or
 compile it with
 
     pp -o mytest -M Log::Log4perl::Appender::Screen mytest.pl
@@ -2267,7 +2267,7 @@ the place and slow down execution to a crawl at high debug levels.
 Remote-controlling logging in the hierarchical parts of an application
 via Log4perl's categories is one of its most distinguished features.
 It allows for enabling high debug levels in specified areas without
-noticable performance impact.
+noticeable performance impact.
 
 =head2 I want to use UTC instead of the local time!
 
