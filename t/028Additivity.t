@@ -72,7 +72,7 @@ ok($buf2, "INFO - Percolate this!\n");
 Log::Log4perl::Appender::TestBuffer->reset();
 
 ######################################################################
-# Define the root logger and another logger, additivity on explicitely
+# Define the root logger and another logger, additivity on explicitly
 ######################################################################
 Log::Log4perl->init(\<<'EOT');
     log4perl.logger = INFO, A1
