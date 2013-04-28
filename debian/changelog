@@ -1,8 +1,13 @@
 liblog-log4perl-perl (1.41-1) experimental; urgency=low
 
   * New upstream release
+  * Bug fix: "new upstream version available", thanks to Jonas Genannt
+    (Closes: #652033).  Fixed in this version
+  * Bug fix: "Mandatory parameters &#39;level&#39;, &#39;message&#39;
+    missing in call to Log::Dispatch::Output::log", thanks to Alexander
+    Wirt (Closes: #688518). Fixed in this version
 
- -- Manoj Srivastava <srivasta@debian.org>  Sun, 28 Apr 2013 01:49:02 -0700
+ -- Manoj Srivastava <srivasta@debian.org>  Sun, 28 Apr 2013 03:05:02 -0700
 
 liblog-log4perl-perl (1.29-1) unstable; urgency=low
 
