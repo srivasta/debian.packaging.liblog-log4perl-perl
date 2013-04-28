@@ -3,6 +3,13 @@
 # Mike Schilli, 2005 (m@perlmeister.com)
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 use warnings;
 use strict;
 
@@ -10,10 +17,10 @@ use Log::Log4perl qw(:easy :no_extra_logdie_message);
 use Test::More;
 
 BEGIN {
-    if ($] < 5.006) {
-        plan skip_all => "Only with perl >= 5.006";
+    if ($] < 5.008) {
+        plan skip_all => "Only with perl >= 5.008";
     } else {
-        plan tests => 9;
+        plan tests => 11;
     }
 }
 
@@ -57,12 +64,11 @@ END   { unlink $TMP_FILE;
 
 my $buf = Log::Log4perl::Appender::TestBuffer->by_name("Screen");
 
-my $line_ref = 63;
-
 $buf->buffer("");
+my $line_ref = __LINE__ + 1;
 LOGCARP("logcarp");
 
-is(readstderr(), "", "No output to stderr");
+like(readstderr(), qr/logcarp at /, "Output to stderr");
 SKIP: { use Carp;
     skip "Detected buggy Carp.pm (upgrade to perl-5.8.*)", 3 unless 
         defined $Carp::VERSION;
@@ -70,9 +76,15 @@ SKIP: { use Carp;
     $line_ref += 9;
     $buf->buffer("");
     LOGCARP("logcarp");
-    is(readstderr(), "", "No output to stderr");
+    like(readstderr(), qr/logcarp at /, "Output to stderr");
     like($buf->buffer(), qr/logcarp.*$line_ref/, "Appender output intact");
 }
+
+$line_ref += 6;
+$buf->clear;
+LOGWARN("Doesn't call 'exit'");
+is(readstderr(), "", "No output to stderr");
+like($buf->buffer(), qr/Doesn't call 'exit'/, "Appender output intact");
 #########################################################################
 # Turn default behaviour back on
 #########################################################################

@@ -15,6 +15,13 @@
 #
 ######################################################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 use warnings;
 use strict;
 
@@ -27,7 +34,7 @@ BEGIN {
     if ($] < 5.006) {
         plan skip_all => "Only with perl >= 5.006";
     } else {
-        plan tests => 62;
+        plan tests => 73;
     }
 }
 
@@ -55,10 +62,26 @@ sub warndietest_nooutput {
 
   eval { &$method($in_str) };
   
-  unlike($warnstr, qr/$out_str/, 
+  unlike($warnstr, qr/\Q$out_str\E/, 
        "$mname($in_str): STDERR does NOT contain \"$out_str\"");
   unlike($app->buffer(), qr/$out_str/, 
        "$mname($in_str): Buffer does NOT contain \"$out_str\"");
+}
+
+# warn() still prints to stderr, but nothing gets logged
+sub warndietest_stderronly {
+  my ($method, $in_str, $out_str, $app, $mname) = @_;
+
+  eval { &$method($in_str) };
+  
+  my($pkg, $file, $line) = caller();
+
+    # it's in stderr
+  like($warnstr, qr/\Q$out_str\E/, 
+       "$mname($in_str): STDERR does contain \"$out_str\" ($file:$line)");
+    # but not logged by log4perl
+  unlike($app->buffer(), qr/$out_str/, 
+       "$mname($in_str): Buffer does NOT contain \"$out_str\" ($file:$line)");
 }
 
 # same as above, just look for no output in buffer, but output in STDERR
@@ -100,7 +123,8 @@ foreach my $f ("logwarn", "logdie", "logcarp", "logcroak", "logcluck",
 }
 
 ######################################################################
-# change the log level to ERROR... warns should produce nothing now
+# change the log level to ERROR... warns should produce nothing in 
+# log4perl now, but logwarn still triggers warn()
 
 $log->level($ERROR);
 
@@ -112,7 +136,7 @@ foreach my $f ("logdie", "logcroak",
 
 foreach my $f ("logwarn", "logcarp", "logcluck",
     ) {
-  warndietest_nooutput(sub {$log->$f(@_)}, "Test $test: $f", "Test $test: $f", $app, "$f");
+  warndietest_stderronly(sub {$log->$f(@_)}, "Test $test: $f", "Test $test: $f", $app, "$f");
   $test++;
 }
 
@@ -122,7 +146,7 @@ foreach my $f ("logwarn", "logcarp", "logcluck",
 $log->level($OFF); # $OFF == $FATAL... although I suspect thats a bug in the log4j spec
 
 foreach my $f ("logwarn", "logcarp", "logcluck", "error_warn") {
-  warndietest_nooutput(sub {$log->$f(@_)}, "Test $test: $f", "Test $test: $f", $app, "$f");
+  warndietest_stderronly(sub {$log->$f(@_)}, "Test $test: $f", "Test $test: $f", $app, "$f");
   $test++;
 }
 
@@ -301,3 +325,80 @@ my $foo = Foo1->new();
 eval { $foo->foo1() };
 
 like $@, qr/024WarnDieCarp.*Foo1::foo1.*eval/s, "Confess logs correct frame";
+
+######################################################################
+# logdie/warn caller level bug
+######################################################################
+Log::Log4perl->init(\<<'EOT');
+    log4perl.rootLogger=DEBUG, A1
+    log4perl.appender.A1=Log::Log4perl::Appender::TestBuffer
+    log4perl.appender.A1.layout=org.apache.log4j.PatternLayout
+    log4perl.appender.A1.layout.ConversionPattern=%F-%L: %m
+EOT
+
+$logger = get_logger("Twix::Bar");
+
+$logger->logwarn("warn!");
+like $warnstr, qr/024WarnDieCarp/, "logwarn() caller depth bug";
+unlike $warnstr, qr/Logger.pm/, "logwarn() caller depth bug";
+
+$Log::Log4perl::Logger::DIE_DEBUG = 1;
+$logger->logdie("die!");
+like $Log::Log4perl::Logger::DIE_DEBUG_BUFFER, qr/024WarnDieCarp/, 
+     "logdie() caller depth bug";
+unlike $Log::Log4perl::Logger::DIE_DEBUG_BUFFER, qr/Logger.pm/, 
+     "logdie() caller depth bug";
+
+my $app3 = Log::Log4perl::Appender::TestBuffer->by_name("A1");
+$app3->buffer("");
+
+my $line1 = __LINE__ + 1;
+subroutine();
+
+my $line2;
+sub subroutine {
+    $line2 = __LINE__ + 1;
+    $logger->logcluck("cluck!");
+}
+
+like $app3->buffer(), qr/-$line2: cluck!/, "logcluck()";
+like $app3->buffer(), qr/main::subroutine\(\) called .* line $line1/, 
+     "logcluck()";
+
+# Carp test
+
+$app3->buffer("");
+my $line3 = __LINE__ + 1;
+subroutine_carp();
+
+my $line4;
+sub subroutine_carp {
+    $line4 = __LINE__ + 1;
+    $logger->logcarp("carp!");
+}
+
+like $app3->buffer(), qr/-$line4: carp!/, "logcarp()";
+like $app3->buffer(), qr/main::subroutine_carp\(\) called .* line $line3/, 
+     "logcarp()";
+
+# Stringify test
+$Log::Log4perl::Logger::DIE_DEBUG = 0;
+$Log::Log4perl::STRINGIFY_DIE_MESSAGE = 0;
+
+eval {
+    $logger->logcroak( { foo => "bar" } );
+};
+
+is $@->{ foo }, "bar", "croak without stringify";
+
+eval {
+    $logger->logconfess( { foo => "bar" } );
+};
+
+is $@->{ foo }, "bar", "confess without stringify";
+
+eval {
+    $logger->logdie( { foo => "bar" } );
+};
+
+is $@->{ foo }, "bar", "die without stringify";

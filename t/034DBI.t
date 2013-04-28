@@ -3,30 +3,51 @@
 # Kevin Goess <cpan@goess.org>
 ###########################################
 
-use Test::More;
+our $table_name = "log4perltest$$";
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
+BEGIN {
+    use FindBin qw($Bin);
+    use lib "$Bin/lib";
+    require Log4perlInternalTest;
+}
+
+use Test::More;
 use Log::Log4perl;
 use warnings;
 use strict;
 
 BEGIN {
+    my $minversion = \%Log::Log4perl::Internal::Test::MINVERSION;
     eval {
         require DBI;
+        die if $DBI::VERSION < $minversion->{ "DBI" };
+
         require DBD::CSV;
+        die if $DBD::CSV::VERSION < $minversion->{ "DBD::CSV" };
+
         require SQL::Statement;
-        die if $DBI::VERSION < 1.607;
-        die if $DBD::CSV::VERSION < 0.22;
-        die if $SQL::Statement::VERSION < 1.20;
+        die if $SQL::Statement::VERSION < $minversion->{ "SQL::Statement" };
     };
     if ($@) {
-        plan skip_all => "DBI 1.607 or DBD::CSV 0.22 or SQL::Statement 1.20 not installed, skipping tests\n";
+        plan skip_all => 
+          "DBI $minversion->{ DBI } or " .
+          "DBD::CSV $minversion->{'DBD::CSV'} or " .
+          "SQL::Statement $minversion->{'SQL::Statement'} " .
+          "not installed, skipping tests\n";
     }else{
-        plan tests => 32;
+        plan tests => 33;
     }
 }
 
 END {
-    unlink "t/tmp/log4perltest";
+    unlink "t/tmp/$table_name";
     rmdir "t/tmp";
 }
 
@@ -35,10 +56,10 @@ mkdir "t/tmp" unless -d "t/tmp";
 require DBI;
 my $dbh = DBI->connect('DBI:CSV:f_dir=t/tmp','testuser','testpw',{ RaiseError => 1, PrintError => 1 });
 
-$dbh->do('DROP TABLE log4perltest') if -e 't/tmp/log4perltest';
+$dbh->do("DROP TABLE $table_name") if -e "t/tmp/$table_name";
 
 my $stmt = <<EOL;
-    CREATE TABLE log4perltest (
+    CREATE TABLE $table_name (
       loglevel     char(9) ,   
       message   char(128),     
       shortcaller   char(5),  
@@ -47,7 +68,6 @@ my $stmt = <<EOL;
       pkg    char(16),
       runtime1 char(16),
       runtime2 char(16)
-      
   )
 EOL
 
@@ -58,16 +78,16 @@ $dbh->do($stmt);
 #calculated at runtime and fed to the $logger->whatever(...)
 #statement
 
-my $config = <<'EOT';
+my $config = <<"EOT";
 #log4j.category = WARN, DBAppndr, console
 log4j.category = WARN, DBAppndr
 log4j.appender.DBAppndr             = Log::Log4perl::Appender::DBI
 log4j.appender.DBAppndr.datasource = DBI:CSV:f_dir=t/tmp
 log4j.appender.DBAppndr.username  = bobjones
 log4j.appender.DBAppndr.password = 12345
-log4j.appender.DBAppndr.sql = \
-   insert into log4perltest \
-   (loglevel, message, shortcaller, thingid, category, pkg, runtime1, runtime2) \
+log4j.appender.DBAppndr.sql = \\
+   insert into $table_name \\
+   (loglevel, message, shortcaller, thingid, category, pkg, runtime1, runtime2) \\
    values (?,?,?,?,?,?,?,?)
 log4j.appender.DBAppndr.params.1 = %p    
 #---------------------------- #2 is message
@@ -99,13 +119,12 @@ Log::Log4perl::init(\$config);
 my $logger = Log::Log4perl->get_logger("groceries.beer");
 
 
-#$logger->fatal('fatal message',1234,'foo','bar');
 $logger->fatal('fatal message',1234,'foo',{aaa => 'aaa'});
 
 #since we ARE buffering, that message shouldnt be there yet
 {
  local $/ = undef;
- open (F, "t/tmp/log4perltest");
+ open (F, "t/tmp/$table_name");
  my $got = <F>;
  close F;
  my $expected = <<EOL;
@@ -123,7 +142,7 @@ $logger->warn('warning message',3456,'foo','bar');
 #with buffersize == 2, now they should write
 {
  local $/ = undef;
- open (F, "t/tmp/log4perltest");
+ open (F, "t/tmp/$table_name");
  my $got = <F>;
  close F;
  my $expected = <<EOL;
@@ -146,7 +165,7 @@ $logger->debug('debug message',99,'foo','bar');
 $logger->warn('warning message with two params',99, 'foo', 'bar');
 $logger->warn('another warning to kick the buffer',99, 'foo', 'bar');
 
-my $sth = $dbh->prepare('select * from log4perltest'); 
+my $sth = $dbh->prepare("select * from $table_name"); 
 $sth->execute;
 
 #first two rows are repeats from the last test
@@ -196,12 +215,13 @@ $dbh->disconnect;
 # might as well give it a thorough check
 Log::Log4perl->reset;
 
+unlink "t/tmp/$table_name"
+    if -e "t/tmp/$table_name";
+
 $dbh = DBI->connect('DBI:CSV:f_dir=t/tmp','testuser','testpw',{ PrintError => 1 });
 
-$dbh->do('DROP TABLE log4perltest') if -e 't/tmp/log4perltest';
-
 $stmt = <<EOL;
-    CREATE TABLE log4perltest (
+    CREATE TABLE $table_name (
       loglevel     char(9) ,   
       message   char(128)     
       
@@ -211,14 +231,13 @@ EOL
 $dbh->do($stmt) || die "do failed on $stmt".$dbh->errstr;
 
 
-$config = <<'EOT';
-#log4j.category = WARN, DBAppndr, console
+$config = <<"EOT";
 log4j.category = WARN, DBAppndr
 log4j.appender.DBAppndr             = Log::Log4perl::Appender::DBI
 log4j.appender.DBAppndr.datasource = DBI:CSV:f_dir=t/tmp
-log4j.appender.DBAppndr.sql = \
-   insert into log4perltest \
-   (loglevel, message) \
+log4j.appender.DBAppndr.sql = \\
+   insert into $table_name \\
+   (loglevel, message) \\
    values (?,?)
 log4j.appender.DBAppndr.params.1 = %p    
 #---------------------------- #2 is message
@@ -240,7 +259,7 @@ $logger->fatal('warning message');
 #since we're not buffering, this message should show up immediately
 {
  local $/ = undef;
- open (F, "t/tmp/log4perltest");
+ open (F, "t/tmp/$table_name");
  my $got = <F>;
  close F;
  my $expected = <<EOL;
@@ -256,3 +275,54 @@ EOL
 
 $logger->fatal('warning message');
 
+  # https://rt.cpan.org/Public/Bug/Display.html?id=79960
+  # undef as NULL
+$dbh->do("DROP TABLE $table_name");
+$stmt = <<EOL;
+    CREATE TABLE $table_name (
+      loglevel     char(9) ,   
+      message   char(128),
+      mdc char(16)
+      
+  )
+EOL
+
+$dbh->do($stmt) || die "do failed on $stmt".$dbh->errstr;
+
+$config = <<"EOT";
+log4j.category = WARN, DBAppndr
+log4j.appender.DBAppndr             = Log::Log4perl::Appender::DBI
+log4j.appender.DBAppndr.datasource = DBI:CSV:f_dir=t/tmp
+log4j.appender.DBAppndr.sql = \\
+   insert into $table_name \\
+   (loglevel, mdc, message) \\
+   values (?, ?, ?)
+log4j.appender.DBAppndr.params.1 = %p    
+log4j.appender.DBAppndr.params.2 = %X{foo}
+#---------------------------- #3 is message
+
+log4j.appender.DBAppndr.usePreparedStmt=2
+log4j.appender.DBAppndr.warp_message=0
+    
+#noop layout to pass it through
+log4j.appender.DBAppndr.layout    = Log::Log4perl::Layout::NoopLayout
+
+EOT
+
+Log::Log4perl::init(\$config);
+
+$logger = Log::Log4perl->get_logger();
+$logger->warn('test message');
+
+open (F, "t/tmp/$table_name");
+my $got = join '', <F>;
+close F;
+
+my $expected = <<EOT;
+loglevel,message,mdc
+WARN,"test message",
+EOT
+
+$got =~ s/[^\w ,"()]//g;  #silly DBD_CSV uses funny EOL chars
+$expected =~ s/[^\w ,"()]//g;
+is $got, $expected, "dbi insert with NULL values";

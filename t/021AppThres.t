@@ -3,6 +3,13 @@
 # Mike Schilli, 2002 (m@perlmeister.com)
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 use warnings;
 use strict;
 
@@ -156,7 +163,8 @@ EOT
 eval { Log::Log4perl::init(\$conf); };
 
 if($@) {
-    like($@, qr/uppercase/, "warn on misspelled 'threshold'");
+    like($@, qr/perhaps you meant 'Threshold'/, 
+         "warn on misspelled 'threshold'");
 } else {
     ok(0, "Abort on misspelled 'threshold'");
 }

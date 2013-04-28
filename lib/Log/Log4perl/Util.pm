@@ -1,45 +1,59 @@
 package Log::Log4perl::Util;
 
+require Exporter;
+our @EXPORT_OK = qw( params_check );
+our @ISA       = qw( Exporter );
+
 use File::Spec;
+
+###########################################
+sub params_check {
+###########################################
+    my( $hash, $required, $optional ) = @_;
+
+    my $pkg       = caller();
+    my %hash_copy = %$hash;
+
+    if( defined $required ) {
+        for my $p ( @$required ) {
+            if( !exists $hash->{ $p } or
+                !defined $hash->{ $p } ) {
+                die "$pkg: Required parameter $p missing.";
+            }
+            delete $hash_copy{ $p };
+        }
+    }
+
+    if( defined $optional ) {
+        for my $p ( @$optional ) {
+            delete $hash_copy{ $p };
+        }
+        if( scalar keys %hash_copy ) {
+            die "$pkg: Unknown parameter: ", join( ",", keys %hash_copy );
+        }
+    }
+}
 
 ##################################################
 sub module_available {  # Check if a module is available
 ##################################################
-# This has to be here, otherwise the following 'use'
-# statements will fail.
-##################################################
     my($full_name) = @_;
 
-    my $relpath = File::Spec->catfile(split /::/, $full_name) . '.pm';
+      # Weird cases like "strict;" (including the semicolon) would 
+      # succeed with the eval below, so check those up front. 
+      # I can't believe Perl doesn't have a proper way to check if a 
+      # module is available or not!
+    return 0 if $full_name =~ /[^\w:]/;
 
-        # Work around a bug in Activestate's "perlapp", which uses
-        # forward slashes instead of Win32 ones.
-    my $relpath_with_forward_slashes = 
-        join('/', (split /::/, $full_name)) . '.pm';
+    local $SIG{__DIE__} = sub {};
 
-    return 1 if exists $INC{$relpath} or
-                exists $INC{$relpath_with_forward_slashes};
-    
-    foreach my $dir (@INC) {
-        if(ref $dir) {
-            # This is fairly obscure 'require'-functionality, nevertheless
-            # trying to implement them as diligently as possible. For
-            # details, check "perldoc -f require".
-            if(ref $dir eq "CODE") {
-                return 1 if $dir->($dir, $relpath_with_forward_slashes);
-            } elsif(ref $dir eq "ARRAY") {
-                return 1 if $dir->[0]->($dir, $relpath_with_forward_slashes);
-            } elsif(ref $dir and 
-                    ref $dir !~ /^(GLOB|SCALAR|HASH|REF|LVALUE)$/) {
-                return 1 if $dir->INC();
-            }
-        } else {
-            # That's the regular case
-            return 1 if -r File::Spec->catfile($dir, $relpath);
-        }
+    eval "require $full_name";
+
+    if($@) {
+        return 0;
     }
-              
-    return 0;
+
+    return 1;
 }
 
 ##################################################
@@ -68,16 +82,35 @@ Log::Log4perl::Util - Internal utility functions
 
 Only internal functions here. Don't peek.
 
-=head1 AUTHORS
+=head1 LICENSE
 
-Mike Schilli <m@perlmeister.com>
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright 2002-2004 by Mike Schilli E<lt>m@perlmeister.comE<gt> and Kevin Goess
-E<lt>cpan@goess.orgE<gt>.
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+and Kevin Goess E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 
-=cut
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

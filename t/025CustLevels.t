@@ -4,6 +4,13 @@
 # clone of 025CustLevels.t but uses nicer method (?) we hope
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 #########################
 # change 'tests => 1' to 'tests => last_test_to_print';
 #########################
@@ -66,7 +73,7 @@ foreach (8, 4, 2, 1, 3, 6, 5, 7, 12, 10, 9, 11, 14, 13, 15) {
 # }
 
 
-my $LOGFILE = "example.log";
+my $LOGFILE = "example$$.log";
 unlink $LOGFILE;
 
 my $config = <<EOT;

@@ -5,7 +5,11 @@ package Log::Log4perl::Layout::PatternLayout;
 use 5.006;
 use strict;
 use warnings;
+
+use constant _INTERNAL_DEBUG => 0;
+
 use Carp;
+use Log::Log4perl;
 use Log::Log4perl::Util;
 use Log::Log4perl::Level;
 use Log::Log4perl::DateFormat;
@@ -13,10 +17,10 @@ use Log::Log4perl::NDC;
 use Log::Log4perl::MDC;
 use Log::Log4perl::Util::TimeTracker;
 use File::Spec;
+use File::Basename;
 
 our $TIME_HIRES_AVAILABLE_WARNED = 0;
 our $HOSTNAME;
-
 our %GLOBAL_USER_DEFINED_CSPECS = ();
 
 our $CSPECS = 'cCdFHIlLmMnpPrRtTxX%';
@@ -50,6 +54,10 @@ sub new {
         CSPECS                => $CSPECS,
         dontCollapseArrayRefs => $options->{dontCollapseArrayRefs}{value},
         last_time             => undef,
+        undef_column_value    => 
+            (exists $options->{ undef_column_value } 
+                ? $options->{ undef_column_value } 
+                : "[undef]"),
     };
 
     $self->{timer} = Log::Log4perl::Util::TimeTracker->new(
@@ -81,6 +89,10 @@ sub new {
     foreach my $f (keys %{$options->{cspec}}){
         $self->add_layout_cspec($f, $options->{cspec}{$f}{value});
     }
+
+    # non-portable line breaks
+    $layout_string =~ s/\\n/\n/g;
+    $layout_string =~ s/\\r/\r/g;
 
     $self->define($layout_string);
 
@@ -152,17 +164,21 @@ sub render {
 
     my @results = ();
 
+    my $caller_offset = Log::Log4perl::caller_depth_offset( $caller_level );
+
     if($self->{info_needed}->{L} or
        $self->{info_needed}->{F} or
        $self->{info_needed}->{C} or
        $self->{info_needed}->{l} or
        $self->{info_needed}->{M} or
+       $self->{info_needed}->{T} or
        0
       ) {
+
         my ($package, $filename, $line, 
             $subroutine, $hasargs,
             $wantarray, $evaltext, $is_require, 
-            $hints, $bitmask) = caller($caller_level);
+            $hints, $bitmask) = caller($caller_offset);
 
         # If caller() choked because of a whacko caller level,
         # correct undefined values to '[undef]' in order to prevent 
@@ -188,15 +204,23 @@ sub render {
             # logger, we need to go one additional level up.
             my $levels_up = 1; 
             {
-                $subroutine = (caller($caller_level+$levels_up))[3];
+                my @callinfo = caller($caller_offset+$levels_up);
+
+                if(_INTERNAL_DEBUG) {
+                    callinfo_dump( $caller_offset, \@callinfo );
+                }
+
+                $subroutine = $callinfo[3];
                     # If we're inside an eval, go up one level further.
                 if(defined $subroutine and
                    $subroutine eq "(eval)") {
+                    print "Inside an eval, one up\n" if _INTERNAL_DEBUG;
                     $levels_up++;
                     redo;
                 }
             }
             $subroutine = "main::" unless $subroutine;
+            print "Subroutine is '$subroutine'\n" if _INTERNAL_DEBUG;
             $info{M} = $subroutine;
             $info{l} = "$subroutine $filename ($line)";
         }
@@ -230,9 +254,12 @@ sub render {
 
         # Stack trace wanted?
     if($self->{info_needed}->{T}) {
+        local $Carp::CarpLevel =
+              $Carp::CarpLevel + $caller_offset;
         my $mess = Carp::longmess(); 
         chomp($mess);
-        $mess =~ s/(?:\A\s*at.*\n|^\s*Log::Log4perl.*\n|^\s*)//mg;
+        # $mess =~ s/(?:\A\s*at.*\n|^\s*Log::Log4perl.*\n|^\s*)//mg;
+        $mess =~ s/(?:\A\s*at.*\n|^\s*)//mg;
         $mess =~ s/\n/, /g;
         $info{T} = $mess;
     }
@@ -251,7 +278,7 @@ sub render {
             $self->{curlies} = $curlies;
             $result = $self->{USER_DEFINED_CSPECS}->{$op}->($self, 
                               $message, $category, $priority, 
-                              $caller_level+1);
+                              $caller_offset+1);
         } elsif(exists $info{$op}) {
             $result = $info{$op};
             if($curlies) {
@@ -267,11 +294,15 @@ sub render {
             $result = "FORMAT-ERROR";
         }
 
-        $result = "[undef]" unless defined $result;
+        $result = $self->{undef_column_value} unless defined $result;
         push @results, $result;
     }
 
-    #print STDERR "sprintf $self->{printformat}--$results[0]--\n";
+      # dbi appender needs that
+    if( scalar @results == 1 and
+        !defined $results[0] ) {
+        return undef;
+    }
 
     return (sprintf $self->{printformat}, @results);
 }
@@ -302,6 +333,8 @@ sub curly_action {
             splice @parts, 0, @parts - $curlies;
         }
         $data = File::Spec->catfile(@parts);
+    } elsif($ops eq "p") {
+        $data = substr $data, 0, $curlies;
     }
 
     return $data;
@@ -426,6 +459,39 @@ sub add_layout_cspec {
     $self->{CSPECS} .= $letter;
 }
 
+###########################################
+sub callinfo_dump {
+###########################################
+    my($level, $info) = @_;
+
+    my @called_by = caller(0);
+
+    # Just for internal debugging
+    $called_by[1] = basename $called_by[1];
+    print "caller($level) at $called_by[1]-$called_by[2] returned ";
+
+    my @by_idx;
+
+    # $info->[1] = basename $info->[1] if defined $info->[1];
+
+    my $i = 0;
+    for my $field (qw(package filename line subroutine hasargs
+                      wantarray evaltext is_require hints bitmask)) {
+        $by_idx[$i] = $field;
+        $i++;
+    }
+
+    $i = 0;
+    for my $value (@$info) {
+        my $field = $by_idx[ $i ];
+        print "$field=", 
+              (defined $info->[$i] ? $info->[$i] : "[undef]"),
+              " ";
+        $i++;
+    }
+
+    print "\n";
+}
 
 1;
 
@@ -457,6 +523,7 @@ replaced by the logging engine when it's time to log the message:
     %c Category of the logging event.
     %C Fully qualified package (or class) name of the caller
     %d Current date in yyyy/MM/dd hh:mm:ss format
+    %d{...} Current date in customized format (see below)
     %F File where the logging event occurred
     %H Hostname (if Sys::Hostname is available)
     %l Fully qualified name of the calling method followed by the
@@ -467,7 +534,7 @@ replaced by the logging engine when it's time to log the message:
     %m{chomp} The message to be logged, stripped off a trailing newline
     %M Method or function where the logging request was issued
     %n Newline (OS-independent)
-    %p Priority of the logging event
+    %p Priority of the logging event (%p{1} shows the first letter)
     %P pid of the current process
     %r Number of milliseconds elapsed from program start to logging 
        event
@@ -558,6 +625,7 @@ specification:
     E        day in week             (Text)           Tuesday
     D        day in year             (Number)         189
     a        am/pm marker            (Text)           PM
+    e        epoch seconds           (Number)         1315011604
 
     (Text): 4 or more pattern letters--use full form, < 4--use short or 
             abbreviated form if one exists. 
@@ -603,7 +671,7 @@ If you're an API kind of person, there's also this call:
     Log::Log4perl::Layout::PatternLayout::
                     add_global_cspec('Z', sub {'zzzzzzzz'}); #snooze?
 
-When the log messages is being put together, your anonymous sub 
+When the log message is being put together, your anonymous sub 
 will be called with these arguments:
 
     ($layout, $message, $category, $priority, $caller_level);
@@ -615,12 +683,11 @@ will be called with these arguments:
     caller_level: how many levels back up the call stack you have 
         to go to find the caller
 
-There are currently some issues around providing API access to an 
-appender-specific cspec, but let us know if this is something you want.
-
 Please note that the subroutines you're defining in this way are going
 to be run in the C<main> namespace, so be sure to fully qualify functions
-and variables if they're located in different packages.
+and variables if they're located in different packages. I<Also make sure
+these subroutines aren't using Log4perl, otherwise Log4perl will enter 
+an infinite recursion.>
 
 With Log4perl 1.20 and better, cspecs can be written with parameters in
 curly braces. Writing something like
@@ -718,10 +785,35 @@ This will add a single newline to every message, regardless if it
 complies with the Log4perl newline guidelines or not (thanks to 
 Tim Bunce for this idea).
 
-=head1 SEE ALSO
+=head1 LICENSE
+
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+and Kevin Goess E<lt>cpan@goess.orgE<gt>.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
 
 =head1 AUTHOR
 
-Mike Schilli, E<lt>m@perlmeister.comE<gt>
+Please contribute patches to the project on Github:
 
-=cut
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

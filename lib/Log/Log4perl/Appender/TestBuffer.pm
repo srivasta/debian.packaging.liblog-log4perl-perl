@@ -39,8 +39,19 @@ sub log {
     my $self = shift;
     my %params = @_;
 
+    if( !defined $params{level} ) {
+        die "No level defined in log() call of " . __PACKAGE__;
+    }
     $self->{buffer} .= "[$params{level}]: " if $LOG_PRIORITY;
     $self->{buffer} .= $params{message};
+}
+
+###########################################
+sub clear {
+###########################################
+    my($self) = @_;
+
+    $self->{buffer} = "";
 }
 
 ##################################################
@@ -106,7 +117,7 @@ Log::Log4perl::Appender::TestBuffer - Appender class for testing
   use Log::Log4perl::Appender::TestBuffer;
 
   my $appender = Log::Log4perl::Appender::TestBuffer->new( 
-      name      => 'buffer',
+      name      => 'mybuffer',
   );
 
       # Append to the buffer
@@ -118,8 +129,8 @@ Log::Log4perl::Appender::TestBuffer - Appender class for testing
       # Retrieve the result
   my $result = $appender->buffer();
 
-      # Reset the buffer to the empty string
-  $appender->reset();
+      # Clear the buffer to the empty string
+  $appender->clear();
 
 =head1 DESCRIPTION
 
@@ -128,10 +139,49 @@ is a C<Log::Dispatch>-style appender, which writes to a buffer
 in memory, from where actual results can be easily retrieved later
 to compare with expeced results.
 
+Every buffer created is stored in an internal global array, and can
+later be referenced by name:
+
+    my $app = Log::Log4perl::Appender::TestBuffer->by_name("mybuffer");
+
+retrieves the appender object of a previously created buffer "mybuffer".
+To reset this global array and have it forget all of the previously 
+created testbuffer appenders (external references to those appenders
+nonwithstanding), use
+
+    Log::Log4perl::Appender::TestBuffer->reset();
+
 =head1 SEE ALSO
+
+=head1 LICENSE
+
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+and Kevin Goess E<lt>cpan@goess.orgE<gt>.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
 
 =head1 AUTHOR
 
-Mike Schilli, E<lt>m@perlmeister.comE<gt>
+Please contribute patches to the project on Github:
 
-=cut
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

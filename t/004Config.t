@@ -3,11 +3,18 @@
 # Mike Schilli, 2002 (m@perlmeister.com)
 ###########################################
 
+BEGIN { 
+    if($ENV{INTERNAL_DEBUG}) {
+        require Log::Log4perl::InternalDebug;
+        Log::Log4perl::InternalDebug->enable();
+    }
+}
+
 #########################
 # change 'tests => 1' to 'tests => last_test_to_print';
 #########################
 use Test::More;
-BEGIN { plan tests => 23 };
+BEGIN { plan tests => 26 };
 
 use Log::Log4perl;
 use Log::Log4perl::Appender::TestBuffer;
@@ -322,6 +329,27 @@ is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(),
         "somepackagefuncGurgel", "%M{1} package");
 
 ######################################################################
+# PatternLayout %p{1}
+######################################################################
+Log::Log4perl::Appender::TestBuffer->reset();
+
+Log::Log4perl->init(\ <<EOT);
+log4j.logger.foo=DEBUG, A1
+log4j.appender.A1=Log::Log4perl::Appender::TestBuffer
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern=-%p{1}- %m
+EOT
+
+somefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(),
+        "-D- Gurgel", "%p{1} main");
+
+Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer("");
+SomePackage::somepackagefunc();
+is(Log::Log4perl::Appender::TestBuffer->by_name("A1")->buffer(), 
+        "-D- Gurgel", "%p{1} package");
+
+######################################################################
 # Test accessors
 ######################################################################
 $parser = Log::Log4perl::Config::PropertyConfigurator->new();
@@ -341,3 +369,17 @@ is($parser->value("log4j.appender.A1"),
 
 is($parser->value("log4perl.appender.A1.layout.ConversionPattern"), 
    "object%m%n", "value() accessor log4perl");
+
+######################################################################
+# Test accessors
+######################################################################
+my $conf = q{
+log4perl.category.pf.trigger = DEBUG
+log4j.appender.A1        = Log::Log4perl::Appender::TestBuffer
+log4j.appender.A1.layout = org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern = object%m%n
+};
+
+eval { Log::Log4perl->init( \$conf ); };
+
+is $@, "", "'trigger' category [rt.cpan.org #50495]";

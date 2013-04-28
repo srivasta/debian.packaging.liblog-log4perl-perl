@@ -33,8 +33,10 @@ sub new {
     #log4j.appender.DBAppndr.params.2 = %5.5m
     foreach my $pnum (keys %{$p{params}}){
         $self->{bind_value_layouts}{$pnum} = 
-                Log::Log4perl::Layout::PatternLayout->new(
-                    {ConversionPattern => {value  => $p{params}->{$pnum}}});
+                Log::Log4perl::Layout::PatternLayout->new({
+                   ConversionPattern  => {value  => $p{params}->{$pnum}},
+                   undef_column_value => undef,
+                });
     }
     #'bind_value_layouts' now contains a PatternLayout
     #for each parameter heading for the Sql engine
@@ -49,8 +51,10 @@ sub new {
         $self->{sth} = $self->create_statement($p{sql});
         $self->{usePreparedStmt} = 1;
     }else{
-        $self->{layout} = Log::Log4perl::Layout::PatternLayout->new(
-                    {ConversionPattern => {value  => $p{sql}}});
+        $self->{layout} = Log::Log4perl::Layout::PatternLayout->new({
+            ConversionPattern  => {value  => $p{sql}},
+            undef_column_value => undef,
+        });
     }
 
     if ($self->{usePreparedStmt} &&  $self->{bufferSize}){
@@ -72,7 +76,7 @@ sub _init {
     } else {
         $self->{connect} = sub {
             DBI->connect(@params{qw(datasource username password)},
-                         {PrintError => 0})
+                         {PrintError => 0, $params{attrs} ? %{$params{attrs}} : ()})
                             or croak "Log4perl: $DBI::errstr";
         };
         $self->{dbh} = $self->{connect}->();
@@ -132,9 +136,14 @@ sub log {
 sub query_execute {
     my($self, $sth, @qmarks) = @_;
 
+    my $errstr = "[no error]";
+
     for my $attempt (0..$self->{reconnect_attempts}) {
         #warn "Exe: @qmarks"; # TODO
         if(! $sth->execute(@qmarks)) {
+
+                  # save errstr because ping() would override it [RT 56145]
+                $errstr = $self->{dbh}->errstr();
 
                 # Exe failed -- was it because we lost the DB
                 # connection?
@@ -142,14 +151,9 @@ sub query_execute {
                     # No, the connection is ok, we failed because there's
                     # something wrong with the execute(): Bad SQL or 
                     # missing parameters or some such). Abort.
-                    croak "Log4perl: DBI appender error: '" .
-                          $self->{dbh}->errstr() . 
-                          "'";
+                    croak "Log4perl: DBI appender error: '$errstr'";
                 }
 
-                # warn "Log4perl: DBI->execute failed $DBI::errstr, \n".
-                #                  "on $self->{SQL}\n@qmarks";
-                #warn "Exe: failed: $DBI::errstr"; # TODO
                 if($attempt == $self->{reconnect_attempts}) {
                     croak "Log4perl: DBI appender failed to " .
                           ($self->{reconnect_attempts} == 1 ? "" : "re") .
@@ -157,9 +161,7 @@ sub query_execute {
                           "to database after " .
                           "$self->{reconnect_attempts} attempt" .
                           ($self->{reconnect_attempts} == 1 ? "" : "s") .
-                          " (last error error was [" .
-                          $self->{dbh}->errstr() . 
-                          "])";
+                          " (last error error was [$errstr]";
                 }
             if(! $self->{dbh}->ping()) {
                 # Ping failed, try to reconnect
@@ -186,7 +188,7 @@ sub query_execute {
         }
         return 1;
     }
-    croak "Log4perl: DBI->execute failed $DBI::errstr, \n".
+    croak "Log4perl: DBI->execute failed $errstr, \n".
           "on $self->{SQL}\n @qmarks";
 }
 
@@ -322,34 +324,35 @@ Log::Log4perl::Appender::DBI - implements appending to a DB
 
 =head1 SYNOPSIS
 
-    my $config = <<'EOT';
-    log4j.category = WARN, DBAppndr
-    log4j.appender.DBAppndr             = Log::Log4perl::Appender::DBI
-    log4j.appender.DBAppndr.datasource  = DBI:CSV:f_dir=t/tmp
-    log4j.appender.DBAppndr.username    = bobjones
-    log4j.appender.DBAppndr.password    = 12345
-    log4j.appender.DBAppndr.sql         = \
-       insert into log4perltest           \
-       (loglevel, custid, category, message, ipaddr) \
-       values (?,?,?,?,?)
-    log4j.appender.DBAppndr.params.1 = %p    
-                                  #2 is custid from the log() call
-    log4j.appender.DBAppndr.params.3 = %c
-                                  #4 is the message from log()
-                                  #5 is ipaddr from log()
-        
-    
-    log4j.appender.DBAppndr.usePreparedStmt = 1
-     #--or--
-    log4j.appender.DBAppndr.bufferSize = 2
-    
-    #just pass through the array of message items in the log statement 
-    log4j.appender.DBAppndr.layout    = Log::Log4perl::Layout::NoopLayout
-    log4j.appender.DBAppndr.warp_message = 0
-    
-    
-    $logger->warn( $custid, 'big problem!!', $ip_addr );
+    my $config = q{
+     log4j.category = WARN, DBAppndr
+     log4j.appender.DBAppndr             = Log::Log4perl::Appender::DBI
+     log4j.appender.DBAppndr.datasource  = DBI:CSV:f_dir=t/tmp
+     log4j.appender.DBAppndr.username    = bobjones
+     log4j.appender.DBAppndr.password    = 12345
+     log4j.appender.DBAppndr.sql         = \
+        insert into log4perltest           \
+        (loglevel, custid, category, message, ipaddr) \
+        values (?,?,?,?,?)
+     log4j.appender.DBAppndr.params.1 = %p    
+                                   #2 is custid from the log() call
+     log4j.appender.DBAppndr.params.3 = %c
+                                   #4 is the message from log()
+                                   #5 is ipaddr from log()
 
+     log4j.appender.DBAppndr.usePreparedStmt = 1
+      #--or--
+     log4j.appender.DBAppndr.bufferSize = 2
+
+     #just pass through the array of message items in the log statement
+     log4j.appender.DBAppndr.layout    = Log::Log4perl::Layout::NoopLayout
+     log4j.appender.DBAppndr.warp_message = 0
+
+     #driver attributes support
+     log4j.appender.DBAppndr.attrs.f_encoding = utf8
+    };
+
+    $logger->warn( $custid, 'big problem!!', $ip_addr );
 
 =head1 CAVEAT
 
@@ -378,7 +381,7 @@ The simplest usage is this:
        INSERT INTO logtbl                \
           (loglevel, message)            \
           VALUES ('%c','%m')
-    
+
     log4j.appender.DBAppndr.layout    = Log::Log4perl::Layout::PatternLayout
 
 
@@ -598,14 +601,41 @@ CHANGING DB CONNECTIONS above.
 Note that C<Log::Log4perl::Appender::DBI> holds one connection open
 for every appender, which might be too many.
 
-=head1 AUTHOR
-
-Kevin Goess <cpan@goess.org> December, 2002
-
 =head1 SEE ALSO
 
 L<Log::Dispatch::DBI>
 
 L<Log::Log4perl::JavaMap::JDBCAppender>
 
-=cut
+=head1 LICENSE
+
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+and Kevin Goess E<lt>cpan@goess.orgE<gt>.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

@@ -1,3 +1,4 @@
+.licensizer.yml
 Changes
 eg/5005it.pl
 eg/benchmarks/Makefile
@@ -12,6 +13,7 @@ eg/log4j-file-append-perl.conf
 eg/log4j-manual-1.conf
 eg/log4j-manual-2.conf
 eg/log4j-manual-3.conf
+eg/log4j-utf8.conf
 eg/newsyslog-test
 eg/override_appender
 eg/prototype
@@ -35,6 +37,7 @@ lib/Log/Log4perl/Appender/Synchronized.pm
 lib/Log/Log4perl/Appender/TestArrayBuffer.pm
 lib/Log/Log4perl/Appender/TestBuffer.pm
 lib/Log/Log4perl/Appender/TestFileCreeper.pm
+lib/Log/Log4perl/Catalyst.pm
 lib/Log/Log4perl/Config.pm
 lib/Log/Log4perl/Config/BaseConfigurator.pm
 lib/Log/Log4perl/Config/DOMConfigurator.pm
@@ -46,7 +49,9 @@ lib/Log/Log4perl/Filter.pm
 lib/Log/Log4perl/Filter/Boolean.pm
 lib/Log/Log4perl/Filter/LevelMatch.pm
 lib/Log/Log4perl/Filter/LevelRange.pm
+lib/Log/Log4perl/Filter/MDC.pm
 lib/Log/Log4perl/Filter/StringMatch.pm
+lib/Log/Log4perl/InternalDebug.pm
 lib/Log/Log4perl/JavaMap.pm
 lib/Log/Log4perl/JavaMap/ConsoleAppender.pm
 lib/Log/Log4perl/JavaMap/FileAppender.pm
@@ -70,9 +75,8 @@ lib/Log/Log4perl/Util/Semaphore.pm
 lib/Log/Log4perl/Util/TimeTracker.pm
 LICENSE
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST
 MANIFEST.SKIP
-META.yml
 README
 t/001Level.t
 t/002Logger.t
@@ -135,11 +139,22 @@ t/055AppDestroy.t
 t/056SyncApp2.t
 t/057MsgChomp.t
 t/058Warnings.t
-t/059Prototyped.t
+t/059Wrapper.t
+t/060Initialized.t
+t/061Multiline.t
+t/062InitHash.t
+t/063LoggerRemove.t
+t/064RealClass.t
+t/065Undef.t
+t/066SQLite.t
+t/067Exception.t
 t/compare.pl
 t/deeper1.expected
 t/deeper6.expected
 t/deeper7.expected
+t/lib/Log4perlInternalTest.pm
 t/testdisp.pl
 xml/log4j-1.2.dtd
 xml/log4perl.dtd
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
