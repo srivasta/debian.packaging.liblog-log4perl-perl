@@ -366,7 +366,7 @@ sub get_logger {  # Get an instance (shortcut)
 
     # Note that (4) L4pSubclass->get_logger() => ("L4pSubclass")
     # is indistinguishable from (3) and therefore can't be allowed.
-    # Wrapper classes always have to specify the category explicitely.
+    # Wrapper classes always have to specify the category explicitly.
 
     my $category;
 
@@ -1285,7 +1285,7 @@ to allow for maximum performance, both with logging enabled and disabled.
 But you need to be aware that there's a small hit every time your code
 encounters a log statement -- no matter if logging is enabled or not. 
 C<Log::Log4perl> has been designed to keep this so low that it will
-be unnoticable to most applications.
+be unnoticeable to most applications.
 
 Here's a couple of tricks which help C<Log::Log4perl> to avoid
 unnecessary delays:
@@ -1589,7 +1589,7 @@ can be used.
 
 If you're afraid that the components of your system are stepping on 
 each other's toes or if you are thinking that different components should
-initialize Log::Log4perl seperately, try to consolidate your system
+initialize Log::Log4perl separately, try to consolidate your system
 to use a centralized Log4perl configuration file and use 
 Log4perl's I<categories> to separate your components.
 
@@ -1806,7 +1806,7 @@ This is a convenient way to define two appenders with the same layout
 without having to retype the pattern definitions.
 
 Variable substitution via C<${varname}> 
-will first try to find an explicitely defined 
+will first try to find an explicitly defined 
 variable. If that fails, it will check your shell's environment
 for a variable of that name. If that also fails, the program will C<die()>.
 

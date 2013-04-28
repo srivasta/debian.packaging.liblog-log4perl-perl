@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-    Log::Log4perl::Layout::PatternLayout::Multiline
+Log::Log4perl::Layout::PatternLayout::Multiline - Multiline Pattern Layout
 
 =head1 SYNOPSIS
 
