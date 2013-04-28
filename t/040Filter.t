@@ -13,7 +13,7 @@ BEGIN {
 use warnings;
 use strict;
 
-use Test::More tests => 29;
+use Test::More tests => 32;
 
 use Log::Log4perl;
 
@@ -204,6 +204,39 @@ Log::Log4perl->reset();
 $buffer->reset();
 
 #############################################
+# MDCFilter
+#############################################
+Log::Log4perl->init(\ <<'EOT');
+    log4perl.logger = INFO, A1
+    log4perl.filter.Match1              = Log::Log4perl::Filter::MDC
+    log4perl.filter.Match1.KeyToMatch   = foo
+    log4perl.filter.Match1.RegexToMatch = ^bar$
+    log4perl.appender.A1        = Log::Log4perl::Appender::TestBuffer
+    log4perl.appender.A1.Filter = Match1
+    log4perl.appender.A1.layout = Log::Log4perl::Layout::SimpleLayout
+EOT
+
+$buffer = Log::Log4perl::Appender::TestBuffer->by_name("A1");
+
+    # Define a logger
+$logger = Log::Log4perl->get_logger("Some.Where");
+
+    # Let through
+Log::Log4perl::MDC->put(foo => 'bar');
+$logger->info("let this through");
+like($buffer->buffer(), qr(let this through), "MDC - passed");
+$buffer->buffer("");
+Log::Log4perl::MDC->remove;
+
+    # Block
+$logger->info("block this");
+is($buffer->buffer(), "", "MDC - blocked");
+$buffer->buffer("");
+
+Log::Log4perl->reset();
+$buffer->reset();
+
+#############################################
 # StringMatchFilter
 #############################################
 Log::Log4perl->init(\ <<'EOT');
@@ -384,3 +417,16 @@ $buffer->buffer("");
 
 Log::Log4perl->reset();
 $buffer->reset();
+
+eval {
+    Log::Log4perl->init(\ <<'EOT');
+      log4perl.logger = INFO, A1
+      log4perl.filter.Match1      = Log::Log4perl::Filter::LevelMatch
+      log4perl.filter.Match1.LevelToWomper = INFO
+      log4perl.appender.A1        = Log::Log4perl::Appender::TestBuffer
+      log4perl.appender.A1.Filter = Match1
+      log4perl.appender.A1.layout = Log::Log4perl::Layout::SimpleLayout
+EOT
+};
+
+like $@, qr/Unknown parameter: LevelToWomper/, "Unknown parameter check";

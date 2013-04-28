@@ -24,6 +24,7 @@ our $DEFAULT_WATCH_DELAY = 60; # seconds
 our $OPTS = {};
 our $OLD_CONFIG;
 our $LOGGERS_DEFINED;
+our $UTF8 = 0;
 
 ###########################################
 sub init {
@@ -33,6 +34,16 @@ sub init {
     undef $WATCHER; # just in case there's a one left over (e.g. test cases)
 
     return _init(@_);
+}
+
+###########################################
+sub utf8 {
+###########################################
+    my( $class, $flag ) = @_;
+
+    $UTF8 = $flag if defined $flag;
+
+    return $UTF8;
 }
 
 ###########################################
@@ -434,6 +445,12 @@ sub create_appender_instance {
        # Check for appender thresholds
     my $threshold = 
        $data->{appender}->{$appname}->{Threshold}->{value};
+
+    if(defined $system_wide_threshold and
+       !defined $threshold) {
+        $threshold = $system_wide_threshold;
+    }
+
     if(defined $threshold) {
             # Need to split into two lines because of CVS
         $appender->threshold($
@@ -462,7 +479,7 @@ sub create_appender_instance {
     }
 
     if(exists $data->{appender}->{$appname}->{threshold}) {
-            die "threshold keyword needs to be uppercase";
+        die "invalid keyword 'threshold' - perhaps you meant 'Threshold'?";
     }
 
     return $appender;
@@ -558,13 +575,22 @@ sub config_read {
 
     $CONFIG_FILE_READS++;  # Count for statistical purposes
 
+    my $base_configurator = Log::Log4perl::Config::BaseConfigurator->new(
+        utf8 => $UTF8,
+    );
+
     my $data = {};
 
     if (ref($config) eq 'HASH') {   # convert the hashref into a list 
                                     # of name/value pairs
         print "Reading config from hash\n" if _INTERNAL_DEBUG;
-        @text = map { $_ . '=' . $config->{$_} } keys %{$config};
-
+        @text = ();
+        for my $key ( keys %$config ) {
+            if( ref( $config->{$key} ) eq "CODE" ) {
+                $config->{$key} = $config->{$key}->();
+            }
+            push @text, $key . '=' . $config->{$key} . "\n";
+        }
     } elsif (ref $config eq 'SCALAR') {
         print "Reading config from scalar\n" if _INTERNAL_DEBUG;
         @text = split(/\n/,$$config);
@@ -573,7 +599,7 @@ sub config_read {
              ref $config eq 'IO::File') {
             # If we have a file handle, just call the reader
         print "Reading config from file handle\n" if _INTERNAL_DEBUG;
-        config_file_read($config, \@text);
+        @text = @{ $base_configurator->file_h_read( $config ) };
 
     } elsif (ref $config) {
             # Caller provided a config parser object, which already
@@ -582,8 +608,7 @@ sub config_read {
         $data = $config->parse();
         return $data;
 
-    #TBD
-    }elsif ($config =~ m|^ldap://|){
+    } elsif ($config =~ m|^ldap://|){
        if(! Log::Log4perl::Util::module_available("Net::LDAP")) {
            die "Log4perl: missing Net::LDAP needed to parse LDAP urls\n$@\n";
        }
@@ -593,7 +618,7 @@ sub config_read {
 
        return Log::Log4perl::Config::LDAPConfigurator->new->parse($config);
 
-    }else{
+    } else {
 
         if ($config =~ /^(https?|ftp|wais|gopher|file):/){
             my ($result, $ua);
@@ -621,12 +646,13 @@ sub config_read {
                 die "Log4perl couln't get $config, ".
                      $res->message." ";
             }
-        }else{
+        } else {
             print "Reading config from file '$config'\n" if _INTERNAL_DEBUG;
-            open FILE, "<$config" or die "Cannot open config file '$config'";
             print "Reading ", -s $config, " bytes.\n" if _INTERNAL_DEBUG;
-            config_file_read(\*FILE, \@text);
-            close FILE;
+              # Use the BaseConfigurator's file reader to avoid duplicating
+              # utf8 handling here.
+            $base_configurator->file( $config );
+            @text = @{ $base_configurator->text() };
         }
     }
     
@@ -655,19 +681,6 @@ sub config_read {
     $data = $parser->parse_post_process( $data, leaf_paths($data) );
 
     return $data;
-}
-
-
-###########################################
-sub config_file_read {
-###########################################
-    my($handle, $linesref) = @_;
-
-        # Dennis Gregorovic <dgregor@redhat.com> added this
-        # to protect apps which are tinkering with $/ globally.
-    local $/ = "\n";
-
-    @$linesref = <$handle>;
 }
 
 ###########################################
@@ -861,7 +874,7 @@ sub allowed_code_ops {
     }
     else {
         # give back 'undef' instead of an empty arrayref
-        unless( defined @Log::Log4perl::ALLOWED_CODE_OPS_IN_CONFIG_FILE ) {
+        unless( @Log::Log4perl::ALLOWED_CODE_OPS_IN_CONFIG_FILE ) {
             return;
         }
     }
@@ -1120,6 +1133,20 @@ certainly override it:
 C<write> is the C<mode> that has C<Log::Log4perl::Appender::File>
 explicitely clobber the log file if it exists.
 
+=head2 Configuration files encoded in utf-8
+
+If your configuration file is encoded in utf-8 (which matters if you 
+e.g. specify utf8-encoded appender filenames in it), then you need to 
+tell Log4perl before running init():
+
+    use Log::Log4perl::Config;
+    Log::Log4perl::Config->utf( 1 );
+
+    Log::Log4perl->init( ... );
+
+This makes sure Log4perl interprets utf8-encoded config files correctly.
+This setting might become the default at some point.
+
 =head1 SEE ALSO
 
 Log::Log4perl::Config::PropertyConfigurator
@@ -1128,12 +1155,35 @@ Log::Log4perl::Config::DOMConfigurator
 
 Log::Log4perl::Config::LDAPConfigurator (coming soon!)
 
-=head1 COPYRIGHT AND LICENSE
+=head1 LICENSE
 
-Copyright 2002-2009 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
 and Kevin Goess E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 
-=cut
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

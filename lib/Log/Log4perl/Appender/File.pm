@@ -94,7 +94,7 @@ sub file_open {
 
     umask($self->{umask}) if defined $self->{umask};
 
-    my $didnt_exist = ! -f $self->{filename};
+    my $didnt_exist = ! -e $self->{filename};
 
     if($self->{syswrite}) {
         sysopen $fh, "$self->{filename}", $sysmode or
@@ -239,8 +239,8 @@ sub log {
     my $fh = $self->{fh};
 
     if($self->{syswrite}) {
-        syswrite $fh, $params{message} or
-            die "Cannot syswrite to '$self->{filename}': $!";
+       defined (syswrite $fh, $params{message}) or
+           die "Cannot syswrite to '$self->{filename}': $!";
     } else {
         print $fh $params{message} or
             die "Cannot write to '$self->{filename}': $!";
@@ -336,6 +336,7 @@ If set, specifies that the owner of the newly created log file should
 be different from the effective user id of the running process.
 Only makes sense if the process is running as root. 
 Both numerical user ids and user names are acceptable.
+Log4perl does not attempt to change the ownership of I<existing> files.
 
 =item group
 
@@ -343,6 +344,7 @@ If set, specifies that the group of the newly created log file should
 be different from the effective group id of the running process.
 Only makes sense if the process is running as root.
 Both numerical group ids and group names are acceptable.
+Log4perl does not attempt to change the group membership of I<existing> files.
 
 =item utf8
 
@@ -444,12 +446,35 @@ a newline at the end of the header will be provided.
 Design and implementation of this module has been greatly inspired by
 Dave Rolsky's C<Log::Dispatch> appender framework.
 
-=head1 COPYRIGHT AND LICENSE
+=head1 LICENSE
 
-Copyright 2002-2009 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
 and Kevin Goess E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 
-=cut
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

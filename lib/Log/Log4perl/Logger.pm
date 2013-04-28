@@ -55,29 +55,22 @@ sub cleanup {
 ##################################################
     # warn "Logger cleanup";
 
+    # Nuke all convenience loggers to avoid them causing cleanup to 
+    # be delayed until global destruction. Problem is that something like
+    #     *{"DEBUG"} = sub { $logger->debug };
+    # ties up a reference to $logger until global destruction, so we 
+    # need to clean up all :easy shortcuts, hence freeing the last
+    # logger references, to then rely on the garbage collector for cleaning
+    # up the loggers.
+    Log::Log4perl->easy_closure_global_cleanup();
+
     # Delete all loggers
-    foreach my $loggername (keys %$LOGGERS_BY_NAME){
-        # warn "Logger delete: $loggername";
-        $LOGGERS_BY_NAME->{$loggername}->DESTROY();
-        delete $LOGGERS_BY_NAME->{$loggername};
-    }
+    $LOGGERS_BY_NAME = {};
 
     # Delete the root logger
     undef $ROOT_LOGGER;
 
     # Delete all appenders
-    foreach my $appendername (keys %APPENDER_BY_NAME){
-        if (exists $APPENDER_BY_NAME{$appendername} &&
-            exists $APPENDER_BY_NAME{$appendername}->{appender}) {
-                # Destroy the specific appender
-            my $appref = $APPENDER_BY_NAME{$appendername}->{appender};
-            $appref->DESTROY() if $appref->can("DESTROY");
-                # Destroy L4p::Appender
-            $APPENDER_BY_NAME{$appendername}->DESTROY();
-            delete $APPENDER_BY_NAME{$appendername}->{appender};
-        }
-        delete $APPENDER_BY_NAME{$appendername};
-    }
     %APPENDER_BY_NAME   = ();
 
     undef $INITIALIZED;
@@ -86,12 +79,8 @@ sub cleanup {
 ##################################################
 sub DESTROY {
 ##################################################
-    CORE::warn 
-        "Destroying logger $_[0]" if $Log::Log4perl::CHATTY_DESTROY_METHODS;
-
-    for(keys %{$_[0]}) {
-        delete $_[0]->{$_};
-    }
+    CORE::warn "Destroying logger $_[0] ($_[0]->{category})" 
+            if $Log::Log4perl::CHATTY_DESTROY_METHODS;
 }
 
 ##################################################
@@ -102,13 +91,6 @@ sub reset {
                                 #reset_all_output_methods when 
                                 #the config changes
 
-
-    #we've got a circular reference thing going on somewhere
-    foreach my $appendername (keys %APPENDER_BY_NAME){
-        delete $APPENDER_BY_NAME{$appendername}->{appender} 
-                if (exists $APPENDER_BY_NAME{$appendername} &&
-                    exists $APPENDER_BY_NAME{$appendername}->{appender});
-    }
     %APPENDER_BY_NAME   = ();
     undef $INITIALIZED;
     undef $NON_INIT_WARNED;
@@ -116,7 +98,7 @@ sub reset {
 
     #clear out all the existing appenders
     foreach my $logger (values %$LOGGERS_BY_NAME){
-        $logger->{appender_names} = ();
+        $logger->{appender_names} = [];
 
 	#this next bit deals with an init_and_watch case where a category
 	#is deleted from the config file, we need to zero out the existing
@@ -124,7 +106,7 @@ sub reset {
 	#behavior --kg
         next if $logger eq $ROOT_LOGGER;
         $logger->{level} = undef;
-        $logger->level();  #set it from the heirarchy
+        $logger->level();  #set it from the hierarchy
     }
 
     # Clear all filters
@@ -167,7 +149,17 @@ sub _new {
 
    $self->set_output_methods;
 
+   print("Created logger $self ($category)\n") if _INTERNAL_DEBUG;
+
    return $self;
+}
+
+##################################################
+sub category {
+##################################################
+   my ($self) = @_;
+
+   return $self->{ category };
 }
 
 ##################################################
@@ -409,7 +401,7 @@ sub generate_watch_code {
                # Bump up the caller level by three, since
                # we've artifically introduced additional levels.
                local $Log::Log4perl::caller_depth =
-                     $Log::Log4perl::caller_depth += 3;
+                     $Log::Log4perl::caller_depth + 3;
 
                # Get a new logger for the same category (the old
                # logger might be obsolete because of the re-init)
@@ -571,7 +563,7 @@ sub get_logger {
     my($class, $category) = @_;
 
     unless(defined $ROOT_LOGGER) {
-        die "Internal error: Root Logger not initialized.";
+        Carp::confess "Internal error: Root Logger not initialized.";
     }
 
     return $ROOT_LOGGER if $category eq "";
@@ -700,6 +692,7 @@ sub create_custom_level {
                            "forgot to pass in a level after which to " .
                            "place the new level!");
   my $syslog_equiv = shift; # can be undef
+  my $log_dispatch_level = shift; # optional
 
   ## only let users create custom levels before initialization
 
@@ -733,7 +726,8 @@ sub create_custom_level {
       create_custom_level("cust1", cust2);
    }) if (${Log::Log4perl::Level::LEVELS{$cust_prio}});
 
-  Log::Log4perl::Level::add_priority($level, $cust_prio, $syslog_equiv);
+  Log::Log4perl::Level::add_priority($level, $cust_prio, $syslog_equiv,
+                                     $log_dispatch_level);
 
   print("Adding prio $level at $cust_prio\n") if _INTERNAL_DEBUG;
 
@@ -827,7 +821,11 @@ sub init_warn {
 sub callerline {
   my $message = join ('', @_);
 
-  my ($pack, $file, $line) = caller($Log::Log4perl::caller_depth + 1);
+  my $caller_offset = 
+    Log::Log4perl::caller_depth_offset( 
+        $Log::Log4perl::caller_depth + 1 );
+
+  my ($pack, $file, $line) = caller($caller_offset);
 
   if (not chomp $message) {     # no newline
     $message .= " at $file line $line";
@@ -853,13 +851,17 @@ sub and_warn {
 sub and_die {
 #######################################################
   my $self = shift;
+  my $arg  = $_[0];
 
   my($msg) = callerline($self->warning_render(@_));
 
   if($DIE_DEBUG) {
       $DIE_DEBUG_BUFFER = "DIE_DEBUG: $msg";
   } else {
-      die("$msg\n");
+      if( $Log::Log4perl::STRINGIFY_DIE_MESSAGE ) {
+          die("$msg\n");
+      }
+      die $arg;
   }
 }
 
@@ -876,8 +878,9 @@ sub logwarn {
     my @chomped = @_;
     chomp($chomped[-1]);
     $self->warn(@chomped);
-    $self->and_warn(@_);
   }
+
+  $self->and_warn(@_);
 }
 
 ##################################################
@@ -937,8 +940,9 @@ sub logcluck {
     foreach (split(/\n/, $message)) {
       $self->warn("$_\n");
     }
-    Carp::cluck($msg);
   }
+
+  Carp::cluck($msg);
 }
 
 ##################################################
@@ -958,8 +962,9 @@ sub logcarp {
     foreach (split(/\n/, $message)) {
       $self->warn("$_\n");
     }
-    Carp::carp($msg) if $Log::Log4perl::LOGDIE_MESSAGE_ON_STDERR;
   }
+
+  Carp::carp($msg);
 }
 
 ##################################################
@@ -968,6 +973,7 @@ sub logcarp {
 sub logcroak {
 ##################################################
   my $self = shift;
+  my $arg  = $_[0];
 
   my $msg = $self->warning_render(@_);
 
@@ -984,8 +990,14 @@ sub logcroak {
     }
   }
 
+  my $croak_msg = $arg;
+
+  if( $Log::Log4perl::STRINGIFY_DIE_MESSAGE ) {
+      $croak_msg = $msg;
+  }
+
   $Log::Log4perl::LOGDIE_MESSAGE_ON_STDERR ? 
-      Carp::croak($msg) : 
+      Carp::croak($croak_msg) : 
         exit($Log::Log4perl::LOGEXIT_CODE);
 }
 
@@ -993,6 +1005,7 @@ sub logcroak {
 sub logconfess {
 ##################################################
   my $self = shift;
+  my $arg  = $_[0];
 
   local $Carp::CarpLevel = 
         $Carp::CarpLevel + 1;
@@ -1009,8 +1022,14 @@ sub logconfess {
     }
   }
 
+  my $confess_msg = $arg;
+
+  if( $Log::Log4perl::STRINGIFY_DIE_MESSAGE ) {
+      $confess_msg = $msg;
+  }
+
   $Log::Log4perl::LOGDIE_MESSAGE_ON_STDERR ? 
-      confess($msg) :
+      confess($confess_msg) :
         exit($Log::Log4perl::LOGEXIT_CODE);
 }
 
@@ -1026,8 +1045,9 @@ sub error_warn {
 
   if ($self->is_error()) {
     $self->error(@_);
-    $self->and_warn(@_);
   }
+
+  $self->and_warn(@_);
 }
 
 ##################################################
@@ -1088,8 +1108,6 @@ sub dec_level {
     $self->set_output_methods;
 }
 
-##################################################
-
 1;
 
 __END__
@@ -1107,12 +1125,35 @@ Log::Log4perl::Logger - Main Logger Class
 While everything that makes Log4perl tick is implemented here,
 please refer to L<Log::Log4perl> for documentation.
 
-=head1 COPYRIGHT AND LICENSE
+=head1 LICENSE
 
-Copyright 2002-2009 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
 and Kevin Goess E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 
-=cut
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+
