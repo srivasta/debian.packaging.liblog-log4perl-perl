@@ -75,7 +75,7 @@ These stealth loggers
 will be absolutely silent until you initialize Log::Log4perl in 
 your main program with either 
 
-        # Define any Log4perl behaviour
+        # Define any Log4perl behavior
     Log::Log4perl->init("foo.conf");
 
 (using a full-blown Log4perl config file) or the super-easy method
@@ -94,7 +94,7 @@ For more info, please check out L<Log::Log4perl/"Stealth Loggers">.
 =head2 How can I simply log all my ERROR messages to a file?
 
 After pulling in the C<Log::Log4perl> module, just initialize its
-behaviour by passing in a configuration to its C<init> method as a string
+behavior by passing in a configuration to its C<init> method as a string
 reference. Then, obtain a logger instance and write out a message
 with its C<error()> method:
 
@@ -109,7 +109,7 @@ with its C<error()> method:
         log4perl.appender.FileApp.layout.ConversionPattern = %d> %m%n
     );
 
-        # Initialize logging behaviour
+        # Initialize logging behavior
     Log::Log4perl->init( \$conf );
 
         # Obtain a logger instance
@@ -143,7 +143,7 @@ doesn't list a category, defining a root logger. Compare that with
     log4perl.logger.Bar.Twix = ERROR, FileApp
 
 which would define a logger for the category C<Bar::Twix>,
-showing probably different behaviour. C<FileApp> on
+showing probably different behavior. C<FileApp> on
 the right side of the assignment is
 an arbitrarily defined variable name, which is only used to somehow 
 reference an appender defined later on.
@@ -180,7 +180,7 @@ sake of compactness:
     $logger->error("Oh my, a dreadful error!");
 
 This retrieves an instance of the logger of the category C<Bar::Twix>, 
-which, as all other categories, inherits behaviour from the root logger if no
+which, as all other categories, inherits behavior from the root logger if no
 other loggers are defined in the initialization section. 
 
 The C<error()>
@@ -196,54 +196,14 @@ doesn't make it through, because the root logger sports a higher setting
 
 =head2 How can I install Log::Log4perl on Microsoft Windows?
 
-Log::Log4perl is fully supported on the Win32 platform. It has been tested 
-with Activestate perl 5.6.1 under Windows 98 and rumor has it that it
-also runs smoothly on all other major flavors (Windows NT, 2000, XP, etc.).
+You can install Log::Log4perl using the CPAN client.
 
-It also runs nicely with ActiveState 5.8.0, and, believe me, 
-we had to jump through some major hoops for that.
+Alternatively you can install it using 
 
-Typically, Win32 systems don't have the C<make> utility installed,
-so the standard C<perl Makefile.PL; make install> on the downloadable
-distribution won't work. But don't despair, there's a very easy solution!
+    ppm install Log-Log4perl
 
-The C<Log::Log4perl> homepage provides a so-called PPD file for ActiveState's
-C<ppm> installer, which comes with ActiveState perl by default.
+if you're using ActiveState perl.
 
-=over 4
-
-=item Install on ActiveState 5.6.*
-
-The DOS command line
-
-    ppm install "http://log4perl.sourceforge.net/ppm/Log-Log4perl.ppd"
-
-will contact the Log4perl homepage, download the latest
-C<Log::Log4perl>
-distribution and install it. If your ActiveState installation
-lacks any of the modules C<Log::Log4perl> depends upon, C<ppm> will 
-automatically contact ActivateState and download them from their CPAN-like
-repository.
-
-=item Install on ActiveState 5.8.*
-
-ActiveState's "Programmer's Package Manager" can be called from
-Window's Start Menu:
-Start-E<gt>Programs->E<gt>ActiveState ActivePerl 5.8E<gt>Perl Package Manager
-will invoke ppm. Since Log::Log4perl hasn't made it yet into the standard
-ActiveState repository (and you probably don't want their outdated packages
-anyway), just tell ppm the first time you call it to add the Log4perl 
-repository
-
-    ppm> repository add http://log4perl.sourceforge.net/ppm
-
-Then, just tell it to install Log::Log4perl and it will resolve all
-dependencies automatically and fetch them from log4perl.sourceforge.net
-if it can't find them in the main archives:
-
-    ppm> install Log-Log4perl
-
-=back
 
 That's it! Afterwards, just create a Perl script like
 
@@ -258,7 +218,7 @@ and run it. It should print something like
     2002/11/06 01:22:05 Watch me!
 
 If you find that something doesn't work, please let us know at
-log4perl-devel@lists.sourceforge.net -- we'll apprechiate it. Have fun!
+log4perl-devel@lists.sourceforge.net -- we'll appreciate it. Have fun!
 
 =head2 How can I include global (thread-specific) data in my log messages?
 
@@ -521,11 +481,11 @@ LWP can be utilized in any Log::Log4perl way you can think of. You can
 have them sent to different appenders, block them based on the
 category and everything else Log::Log4perl has to offer.
 
-Only drawback of this method: Steering logging behaviour via category 
+Only drawback of this method: Steering logging behavior via category 
 is always based on the C<LWP::Debug> package. Although the logging
 statements reflect the package name of the issuing module properly, 
 the stealth loggers in C<LWP::Debug> are all of the category C<LWP::Debug>.
-This implies that you can't control the logging behaviour based on the
+This implies that you can't control the logging behavior based on the
 package that's I<initiating> a log request (e.g. LWP::UserAgent) but only
 based on the package that's actually I<executing> the logging statement, 
 C<LWP::Debug> in this case.
@@ -579,7 +539,7 @@ above.
 
 Say, your application uses Log::Log4perl for logging and 
 therefore comes with a Log4perl configuration file, specifying the logging
-behaviour.
+behavior.
 But, you also want it to take command line parameters to set values
 like the name of the log file.
 How can you have
@@ -806,7 +766,7 @@ C<0>:
 The message will now be accepted by the C<Cat::Subcat> logger,
 forwarded to its appender, but then C<Cat::Subcat> will suppress
 any further action. While this setting avoids duplicate messages
-as seen before, it is often not the desired behaviour. Messages
+as seen before, it is often not the desired behavior. Messages
 percolating up the hierarchy are a useful Log4perl feature.
 
 If you're defining I<different> appenders for the two loggers,
@@ -1770,11 +1730,11 @@ module along with regular Log::Log4perl initialization:
         });
 
     tie *STDERR, "Trapper";
-    
+
 Make sure not to use STDERR as Log::Log4perl's file appender
 here (which would be the default in C<:easy> mode), because it would 
 end up in an endless recursion.
-    
+
 Now, calling
 
     IgnorantModule::some_method();
@@ -2592,18 +2552,41 @@ Bottom line: Leave the setting of the logging level to the initial Perl
 script -- let their owners decided what they want, no matter how tempting
 it may be to decide it for them.
 
-=cut
+=cut 
 
 =head1 SEE ALSO
 
 Log::Log4perl
 
-=head1 COPYRIGHT AND LICENSE
+=head1 LICENSE
 
-Copyright 2002-2009 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
+Copyright 2002-2013 by Mike Schilli E<lt>m@perlmeister.comE<gt> 
 and Kevin Goess E<lt>cpan@goess.orgE<gt>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 
-=cut
+=head1 AUTHOR
+
+Please contribute patches to the project on Github:
+
+    http://github.com/mschilli/log4perl
+
+Send bug reports or requests for enhancements to the authors via our
+
+MAILING LIST (questions, bug reports, suggestions/patches): 
+log4perl-devel@lists.sourceforge.net
+
+Authors (please contact them via the list above, not directly):
+Mike Schilli <m@perlmeister.com>,
+Kevin Goess <cpan@goess.org>
+
+Contributors (in alphabetical order):
+Ateeq Altaf, Cory Bennett, Jens Berthold, Jeremy Bopp, Hutton
+Davidson, Chris R. Donnelly, Matisse Enzer, Hugh Esco, Anthony
+Foiani, James FitzGibbon, Carl Franks, Dennis Gregorovic, Andy
+Grundman, Paul Harrington, Alexander Hartmaier  David Hull, 
+Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter, 
+Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope, 
+Lars Thegler, David Viner, Mac Yang.
+

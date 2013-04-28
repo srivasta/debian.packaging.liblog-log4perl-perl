@@ -20,11 +20,20 @@ sub trunc {
     close FILE;
 }
 
+sub is_like_windows {
+    if( $^O eq "MSWin32" or
+        $^O eq "cygwin" ) {
+        return 1;
+    }
+
+    return 0;
+}
+
 BEGIN {
     if ($] < 5.006) {
         plan skip_all => "Only with perl >= 5.006";
     } else {
-        plan tests => 30;
+        plan tests => 34;
     }
 }
 
@@ -38,10 +47,12 @@ unless (-e "$WORK_DIR"){
 }
 
 my $testfile = File::Spec->catfile($WORK_DIR, "test17.log");
+my $testfile2 = File::Spec->catfile($WORK_DIR, "test17b.log");
 my $testconf = File::Spec->catfile($WORK_DIR, "test17.conf");
 
 END { 
     unlink $testfile if (-e $testfile);
+    unlink $testfile2 if (-e $testfile2);
     unlink $testconf if (-e $testconf);
     rmdir $WORK_DIR;
 }
@@ -175,7 +186,7 @@ $log = join('',@log);
 is($log, "INFO - info message\nDEBUG animal.dog - 2nd debug message\nINFO  animal.dog - 2nd info message\nINFO  animal.dog - 2nd info message again\nINFO - 3rd info message\n", "after reload");
 
 SKIP: {
-  skip "Signal handling not supported on Win32", 2 if $^O eq "MSWin32";
+  skip "Signal handling not supported on Win32", 2 if is_like_windows();
    # ***************************************************************
    # Check the 'recreate' feature
    
@@ -209,76 +220,102 @@ EOL
    trunc($testconf);
 };
 
+
 # ***************************************************************
 # Check the 'recreate' feature with signal handling
 
-
 SKIP: {
-  skip "File recreation not supported on Win32", 5 if $^O eq "MSWin32";
+  skip "File recreation not supported on Win32", 9 if is_like_windows();
+
+  # Use two appenders to confirm that both files are recreated when the
+  # signal is received, rather than just whichever watcher was created
+  # last.
 
   my $conf5 = <<EOL;
-    log4j.category.animal.dog   = INFO, myAppender
+    log4j.category.animal.dog   = INFO, myAppender1
+    log4j.category.animal.cat   = INFO, myAppender2
 
-    log4j.appender.myAppender          = Log::Log4perl::Appender::File
-    log4j.appender.myAppender.layout   = Log::Log4perl::Layout::SimpleLayout
-    log4j.appender.myAppender.filename = $testfile
-    log4j.appender.myAppender.recreate = 1
-    log4j.appender.myAppender.recreate_check_signal = USR1
+    log4j.appender.myAppender1          = Log::Log4perl::Appender::File
+    log4j.appender.myAppender1.layout   = Log::Log4perl::Layout::SimpleLayout
+    log4j.appender.myAppender1.filename = $testfile
+    log4j.appender.myAppender1.recreate = 1
+    log4j.appender.myAppender1.recreate_check_signal = USR1
+
+    log4j.appender.myAppender2          = Log::Log4perl::Appender::File
+    log4j.appender.myAppender2.layout   = Log::Log4perl::Layout::SimpleLayout
+    log4j.appender.myAppender2.filename = $testfile2
+    log4j.appender.myAppender2.recreate = 1
+    log4j.appender.myAppender2.recreate_check_signal = USR1
 EOL
 
   Log::Log4perl->init(\$conf5);
   
-  $logger = Log::Log4perl::get_logger('animal.dog');
+  my $logger = Log::Log4perl::get_logger('animal.dog');
   $logger->info("test1");
   ok(-f $testfile, "recreate_signal - testfile created");
+
+  my $logger2 = Log::Log4perl::get_logger('animal.cat');
+  $logger2->info("test1");
+  ok(-f $testfile2, "recreate_signal - testfile created");
+
   
-  unlink $testfile;
+  unlink $testfile, $testfile2;
   ok(!-f $testfile, "recreate_signal - testfile deleted");
+  ok(!-f $testfile2, "recreate_signal - testfile2 deleted");
   
   $logger->info("test1");
+  $logger2->info("test1");
   ok(!-f $testfile, "recreate_signal - testfile still missing");
+  ok(!-f $testfile2, "recreate_signal - testfile2 still missing");
   
   ok(kill('USR1', $$), "sending signal");
   $logger->info("test1");
+  $logger2->info("test1");
   ok(-f $testfile, "recreate_signal - testfile reinstated");
+  ok(-f $testfile2, "recreate_signal - testfile2 reinstated");
 };
 
-# ***************************************************************
-# Check the 'recreate' feature with check_interval
 
-trunc($testfile);
-my $conf3 = <<EOL;
-log4j.category.animal.dog   = INFO, myAppender
+SKIP: {
+  skip "Removing busy files not supported on Win32", 1 if is_like_windows();
 
-log4j.appender.myAppender          = Log::Log4perl::Appender::File
-log4j.appender.myAppender.layout   = Log::Log4perl::Layout::SimpleLayout
-log4j.appender.myAppender.filename = $testfile
-log4j.appender.myAppender.recreate = 1
-log4j.appender.myAppender.recreate_check_interval = 1
-log4j.appender.myAppender.mode     = append
+    # ***************************************************************
+    # Check the 'recreate' feature with check_interval
+    
+    trunc($testfile);
+    my $conf3 = <<EOL;
+    log4j.category.animal.dog   = INFO, myAppender
+    
+    log4j.appender.myAppender          = Log::Log4perl::Appender::File
+    log4j.appender.myAppender.layout   = Log::Log4perl::Layout::SimpleLayout
+    log4j.appender.myAppender.filename = $testfile
+    log4j.appender.myAppender.recreate = 1
+    log4j.appender.myAppender.recreate_check_interval = 1
+    log4j.appender.myAppender.mode     = append
 EOL
-
-  # Create logfile
-Log::Log4perl->init(\$conf3);
-  # ... and immediately remove it
-unlink $testfile;
-
-print "sleeping for 2 secs\n";
-sleep(2);
-
-$logger = Log::Log4perl::get_logger('animal.dog');
-$logger->info("test1");
-open (LOG, $testfile) or die "can't open $testfile $!";
-is(scalar <LOG>, "INFO - test1\n", "recreate before first write");
-close LOG;
+    
+      # Create logfile
+    Log::Log4perl->init(\$conf3);
+      # ... and immediately remove it
+    unlink $testfile or die "cannot remove file $testfile ($!)";
+    
+    print "sleeping for 2 secs\n";
+    sleep(2);
+    
+    $logger = Log::Log4perl::get_logger('animal.dog');
+    $logger->info("test1");
+    open (LOG, $testfile) or die "can't open $testfile $!";
+    is(scalar <LOG>, "INFO - test1\n", "recreate before first write");
+    close LOG;
+}
 
 # ***************************************************************
 # Check the 'recreate' feature with check_interval (2nd write)
 
 SKIP: {
-  skip "Signal handling not supported on Win32", 1 if $^O eq "MSWin32";
+  skip "Signal handling not supported on Win32", 1 if is_like_windows();
     trunc($testfile);
-    $conf3 = <<EOL;
+    my $conf3 = <<EOL;
     log4j.category.animal.dog   = INFO, myAppender
 
     log4j.appender.myAppender          = Log::Log4perl::Appender::File
@@ -316,10 +353,10 @@ EOL
 # Check the 'recreate' feature with moved/recreated file
 
 SKIP: {
-  skip "Moving busy files not supported on Win32", 1 if $^O eq "MSWin32";
+  skip "Moving busy files not supported on Win32", 1 if is_like_windows();
 
     trunc($testfile);
-    $conf3 = <<EOL;
+    my $conf3 = <<EOL;
     log4j.category.animal.dog   = INFO, myAppender
 
     log4j.appender.myAppender          = Log::Log4perl::Appender::File
