@@ -233,6 +233,8 @@ sub isGreaterOrEqual {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Log::Log4perl::Level - Predefined log levels
@@ -268,7 +270,7 @@ if you pull it in providing the C<:levels> tag:
     use Log::Log4perl qw(:levels);
 
 This is the preferred way, there's usually no need to call 
-C<Log::Log4perl::Level> explicitely.
+C<Log::Log4perl::Level> explicitly.
 
 The numerical values assigned to these constants are purely virtual,
 only used by Log::Log4perl internally and can change at any time,
