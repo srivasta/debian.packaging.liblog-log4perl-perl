@@ -1,3 +1,17 @@
+liblog-log4perl-perl (1.43-1) unstable; urgency=low
+
+  * New upstream release
+   +    (ms) Added %m{indent} to indent multi-line messages according to the
+             PatternLayout (inspired by Wolfgang Pecho)
+   +    (ms) [rt.cpan.org #84818] Deven T. Corzine suggested adding
+             a conditional use Win32 on Win32 platform to fix a
+             chicken-and-egg problem with the resurrector.
+   +    (ms) Brian Wightman fixed Win32 log file cleanup in test suite
+             https://github.com/mschilli/log4perl/pull/39. New FAQ
+             entry on Win32 log file cleanup.
+
+ -- Manoj Srivastava <srivasta@debian.org>  Fri, 04 Apr 2014 23:32:24 -0700
+
 liblog-log4perl-perl (1.41-1.1) unstable; urgency=low
 
   * Non-maintainer upload.

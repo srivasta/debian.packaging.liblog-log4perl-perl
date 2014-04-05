@@ -1,7 +1,7 @@
-From 1c1bfe0b8781e020631256f0458510898957ee82 Mon Sep 17 00:00:00 2001
+From 1a0b3a4d0155858225fcea213cca185625de25dd Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Thu, 3 Sep 2009 23:34:34 -0500
-Subject: [topic--debian]: Fix Wrong path for interpreter
+Subject: [PATCH 3/3] [topic--debian]: Fix Wrong path for interpreter
 
 Mostly tests and examples.
 
@@ -12,9 +12,9 @@ Signed-off-by: Manoj Srivastava <srivasta@debian.org>
 
 Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
 ---
- eg/benchmarks/simple |    2 +-
- eg/newsyslog-test    |    2 +-
- t/027Watch4.t        |    2 +-
+ eg/benchmarks/simple | 2 +-
+ eg/newsyslog-test    | 2 +-
+ t/027Watch4.t        | 2 +-
  3 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/eg/benchmarks/simple b/eg/benchmarks/simple
@@ -47,3 +47,6 @@ index 6f61097..0287510 100755
  
  BEGIN { 
      if($ENV{INTERNAL_DEBUG}) {
+-- 
+1.9.1
+

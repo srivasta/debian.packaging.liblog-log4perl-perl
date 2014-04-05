@@ -1,10 +1,10 @@
 Source: liblog-log4perl-perl
-VCS-Git: git://git.debian.org/~srivasta/debian/liblog-log4perl-perl.git
+VCS-Git: git://anonscm.debian.org/users/srivasta/debian/liblog-log4perl-perl.git
 VCS-Browser: http://git.debian.org/git/?p=users/srivasta/debian/liblog-log4perl-perl.git
 Section: perl
 Priority: optional
 Maintainer: Manoj Srivastava <srivasta@debian.org>
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://search.cpan.org/~mschilli/Log-Log4perl-1.41/lib/Log/Log4perl.pm
 Build-Depends-Indep: perl-modules, libdbd-csv-perl, liblog-dispatch-perl,
                      libxml-dom-perl, debhelper (>= 9.0.0)
