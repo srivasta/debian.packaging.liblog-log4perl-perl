@@ -1,6 +1,6 @@
 #Testing if the file-appender appends in default mode
 
-BEGIN { 
+BEGIN {
     if($ENV{INTERNAL_DEBUG}) {
         require Log::Log4perl::InternalDebug;
         Log::Log4perl::InternalDebug->enable();
@@ -14,10 +14,11 @@ use strict;
 
 use Log::Log4perl;
 use File::Spec;
+use File::Path qw(remove_tree);
 
 our $LOG_DISPATCH_PRESENT;
 
-BEGIN { 
+BEGIN {
     eval { require Log::Dispatch; };
     if(! $@) {
        $LOG_DISPATCH_PRESENT = 1;
@@ -33,10 +34,11 @@ unless (-e "$WORK_DIR"){
 }
 
 my $testfile = File::Spec->catfile($WORK_DIR, "test26.log");
+my $testpath = File::Spec->catfile($WORK_DIR, "test26");
 
-BEGIN {plan tests => 20}
+BEGIN {plan tests => 26}
 
-END { 
+END {
     unlink_testfiles();
     }
 
@@ -46,6 +48,8 @@ sub unlink_testfiles {
     unlink "${testfile}_2";
     unlink "${testfile}_3";
     unlink "${testfile}_4";
+    unlink "${testfile}_5";
+    remove_tree ($testpath, "${testpath}_1");
 }
 
 unlink_testfiles();
@@ -154,7 +158,7 @@ for(qw(1 2)) {
 
 #########################################################
 # Check if the 0.33 Log::Log4perl::Appender::File bug is
-# fixed which caused all messages to end up in the same 
+# fixed which caused all messages to end up in the same
 # file.
 #########################################################
 $data = <<EOT;
@@ -379,20 +383,105 @@ is($content, "INFO - File1\n");
 unlink "${testfile}_3";
 
 #########################################################
+# Testing create_at_logtime with recreate_check_signal
+#########################################################
+unlink "${testfile}_4"; # delete leftovers from previous tests
+
+$data = qq(
+log4perl.category         = DEBUG, Logfile
+log4perl.appender.Logfile          = Log::Log4perl::Appender::File
+log4perl.appender.Logfile.filename = ${testfile}_4
+log4perl.appender.Logfile.create_at_logtime = 1
+log4perl.appender.Logfile.recreate = 1;
+log4perl.appender.Logfile.recreate_check_signal = USR1
+log4perl.appender.Logfile.layout   = Log::Log4perl::Layout::SimpleLayout
+);
+
+Log::Log4perl->init(\$data);
+ok(! -f "${testfile}_4");
+
+$log = Log::Log4perl::get_logger("");
+$log->info("File1");
+
+open FILE, "<${testfile}_4" or die "Cannot open ${testfile}_4";
+$content = join '', <FILE>;
+close FILE;
+
+is($content, "INFO - File1\n");
+
+unlink "${testfile}_4";
+
+#########################################################
 # Print a header into a newly opened file
 #########################################################
 $data = qq(
 log4perl.category         = DEBUG, Logfile
 log4perl.appender.Logfile          = Log::Log4perl::Appender::File
-log4perl.appender.Logfile.filename = ${testfile}_4
+log4perl.appender.Logfile.filename = ${testfile}_5
 log4perl.appender.Logfile.header_text = This is a nice header.
 log4perl.appender.Logfile.layout   = Log::Log4perl::Layout::SimpleLayout
 );
 
 Log::Log4perl->init(\$data);
-open FILE, "<${testfile}_4" or die "Cannot open ${testfile}_4";
+open FILE, "<${testfile}_5" or die "Cannot open ${testfile}_5";
 $content = join '', <FILE>;
 close FILE;
 
 is($content, "This is a nice header.\n", "header_text");
 
+####################################################
+# Create path if it is not already created
+####################################################
+
+
+my $testmkpathfile = File::Spec->catfile($testpath, "test26.log");
+
+$data = <<EOT;
+log4j.category = INFO, FileAppndr
+log4j.appender.FileAppndr          = Log::Log4perl::Appender::File
+log4j.appender.FileAppndr.filename = $testmkpathfile
+log4j.appender.FileAppndr.layout   = Log::Log4perl::Layout::SimpleLayout
+log4j.appender.FileAppndr.mkpath   = 1
+EOT
+
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("Shu-wa-chi!");
+
+open FILE, "<$testmkpathfile" or die "Cannot create $testmkpathfile";
+$content = join '', <FILE>;
+close FILE;
+
+is($content, "INFO - Shu-wa-chi!\n");
+
+####################################################
+# Create path with umask if it is not already created
+####################################################
+
+my $oldumask = umask;
+
+$testmkpathfile = File::Spec->catfile("${testpath}_1", "test26.log");
+
+$data = <<EOT;
+log4j.category = INFO, FileAppndr
+log4j.appender.FileAppndr              = Log::Log4perl::Appender::File
+log4j.appender.FileAppndr.filename     = $testmkpathfile
+log4j.appender.FileAppndr.layout       = Log::Log4perl::Layout::SimpleLayout
+log4j.appender.FileAppndr.umask        = 0026
+log4j.appender.FileAppndr.mkpath       = 1
+log4j.appender.FileAppndr.mkpath_umask = 0027
+EOT
+
+Log::Log4perl::init(\$data);
+$log = Log::Log4perl::get_logger("");
+$log->info("Shu-wa-chi!");
+
+my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size, $atime,$mtime,$ctime,$blksize,$blocks) = stat("${testpath}_1");
+
+is($mode & 07777,0750);
+
+ ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size, $atime,$mtime,$ctime,$blksize,$blocks) = stat($testmkpathfile);
+
+is($mode & 07777,0640);
+
+is(umask,$oldumask);
