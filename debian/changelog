@@ -1,5 +1,8 @@
-liblog-log4perl-perl (1.43-2) UNRELEASED; urgency=medium
+liblog-log4perl-perl (1.44-1) unstable; urgency=medium
 
+  * Team upload
+
+  [ Dominique Dumont ]
   *  Take over for the Debian Perl Group on maintainer's request
     (https://lists.debian.org/debian-perl/2014/04/msg00009.html)
   * debian/control: Added: Vcs-Git field (source stanza); Vcs-Browser
@@ -10,7 +13,10 @@ liblog-log4perl-perl (1.43-2) UNRELEASED; urgency=medium
     to Uploaders.
   * debian/watch: use metacpan-based URL.
 
- -- Dominique Dumont <dod@debian.org>  Sun, 06 Apr 2014 19:03:37 +0200
+  [ Damyan Ivanov ]
+  * Imported Upstream version 1.44
+
+ -- Damyan Ivanov <dmn@debian.org>  Thu, 22 May 2014 23:22:32 +0300
 
 liblog-log4perl-perl (1.43-1) unstable; urgency=low
 
