@@ -1,6 +1,4 @@
 Source: liblog-log4perl-perl
-VCS-Git: git://anonscm.debian.org/users/srivasta/debian/liblog-log4perl-perl.git
-VCS-Browser: http://git.debian.org/git/?p=users/srivasta/debian/liblog-log4perl-perl.git
 Section: perl
 Priority: optional
 Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
