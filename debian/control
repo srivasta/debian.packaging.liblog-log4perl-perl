@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
 Uploaders: Manoj Srivastava <srivasta@debian.org>
 Standards-Version: 3.9.5
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-perl/packages/liblog-log4perl-perl.git
 Vcs-Git: git://anonscm.debian.org/pkg-perl/packages/liblog-log4perl-perl.git
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-perl/packages/liblog-log4perl-perl.git
 Homepage: https://metacpan.org/release/Log-Log4perl
 Build-Depends-Indep: perl-modules, libdbd-csv-perl, liblog-dispatch-perl,
                      libxml-dom-perl, debhelper (>= 9.0.0)
