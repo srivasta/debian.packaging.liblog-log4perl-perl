@@ -9,7 +9,7 @@ Build-Depends-Indep: perl-modules,
                      liblog-dispatch-perl,
                      libxml-dom-perl,
                      debhelper (>= 9.0.0)
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-perl/packages/liblog-log4perl-perl.git
 Vcs-Git: git://anonscm.debian.org/pkg-perl/packages/liblog-log4perl-perl.git
 Homepage: https://metacpan.org/release/Log-Log4perl
@@ -17,7 +17,7 @@ Homepage: https://metacpan.org/release/Log-Log4perl
 Package: liblog-log4perl-perl
 Architecture: all
 Depends: ${misc:Depends},
-         perl
+         ${perl:Depends}
 Recommends: liblog-dispatch-perl,
             libipc-shareable-perl
 Suggests: libdbd-csv-perl,
