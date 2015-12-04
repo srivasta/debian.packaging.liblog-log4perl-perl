@@ -1,21 +1,26 @@
 Source: liblog-log4perl-perl
-Section: perl
-Priority: optional
 Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
 Uploaders: Manoj Srivastava <srivasta@debian.org>
+Section: perl
+Priority: optional
+Build-Depends-Indep: perl-modules,
+                     libdbd-csv-perl,
+                     liblog-dispatch-perl,
+                     libxml-dom-perl,
+                     debhelper (>= 9.0.0)
 Standards-Version: 3.9.5
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-perl/packages/liblog-log4perl-perl.git
 Vcs-Git: git://anonscm.debian.org/pkg-perl/packages/liblog-log4perl-perl.git
 Homepage: https://metacpan.org/release/Log-Log4perl
-Build-Depends-Indep: perl-modules, libdbd-csv-perl, liblog-dispatch-perl,
-                     libxml-dom-perl, debhelper (>= 9.0.0)
-
 
 Package: liblog-log4perl-perl
 Architecture: all
-Depends: ${misc:Depends}, perl
-Suggests: libdbd-csv-perl, libxml-dom-perl
-Recommends: liblog-dispatch-perl, libipc-shareable-perl
+Depends: ${misc:Depends},
+         perl
+Recommends: liblog-dispatch-perl,
+            libipc-shareable-perl
+Suggests: libdbd-csv-perl,
+          libxml-dom-perl
 Description: Perl port of the widely popular log4j logging package
  Log::Log4perl is a pure Perl port of the widely popular Apache/Jakarta
  log4j library for Java. In the spirit of log4j, Log::Log4perl
