@@ -1,13 +1,22 @@
-liblog-log4perl-perl (1.46-1) UNRELEASED; urgency=medium
+liblog-log4perl-perl (1.46-1) unstable; urgency=medium
+
+  * Team upload.
 
   [ Salvatore Bonaccorso ]
   * Update Vcs-Browser URL to cgit web frontend
 
   [ gregor herrmann ]
-  * Add debian/upstream/metadata
-  * Import upstream version 1.46
+  * Add debian/upstream/metadata.
+  * Import upstream version 1.46.
+  * Don't install README anymore.
+    (Text version of the POD.)
+  * Update source location in debian/copyright.
+  * Mark package as autopkgtest-able.
+  * Add more packages to Build-Depends-Indep and Suggests.
+    Thanks to autopkgtest.
+  * Declare compliance with Debian Policy 3.9.6.
 
- -- gregor herrmann <gregoa@debian.org>  Fri, 04 Dec 2015 19:19:47 +0100
+ -- gregor herrmann <gregoa@debian.org>  Fri, 04 Dec 2015 20:09:10 +0100
 
 liblog-log4perl-perl (1.44-1) unstable; urgency=medium
 
