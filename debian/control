@@ -6,7 +6,10 @@ Testsuite: autopkgtest-pkg-perl
 Priority: optional
 Build-Depends: debhelper (>= 9)
 Build-Depends-Indep: libdbd-csv-perl,
+                     libdbd-sqlite3-perl,
                      liblog-dispatch-perl,
+                     liblog-dispatch-filerotate-perl,
+                     librrds-perl,
                      libxml-dom-perl,
                      perl
 Standards-Version: 3.9.6
@@ -21,6 +24,8 @@ Depends: ${misc:Depends},
 Recommends: liblog-dispatch-perl,
             libipc-shareable-perl
 Suggests: libdbd-csv-perl,
+          liblog-dispatch-filerotate-perl,
+          librrds-perl,
           libxml-dom-perl
 Description: Perl port of the widely popular log4j logging package
  Log::Log4perl is a pure Perl port of the widely popular Apache/Jakarta
