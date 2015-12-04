@@ -2,6 +2,7 @@ Source: liblog-log4perl-perl
 Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
 Uploaders: Manoj Srivastava <srivasta@debian.org>
 Section: perl
+Testsuite: autopkgtest-pkg-perl
 Priority: optional
 Build-Depends-Indep: perl-modules,
                      libdbd-csv-perl,
