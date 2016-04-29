@@ -1,6 +1,6 @@
-From 8e26a80f0a5e5b951d3af646b9a59497431c3359 Mon Sep 17 00:00:00 2001
+From 2d77aafe50d70c3a73ddfc93906e0348e09969dc Mon Sep 17 00:00:00 2001
 From: gregor herrmann <gregoa@debian.org>
-Date: Fri, 29 Apr 2016 17:45:59 +0200
+Date: Fri, 29 Apr 2016 17:54:32 +0200
 Subject: [PATCH] debcherry fixup patch
 
 7a3ad19 [topic--man-fix]: spelling errors in man pages
