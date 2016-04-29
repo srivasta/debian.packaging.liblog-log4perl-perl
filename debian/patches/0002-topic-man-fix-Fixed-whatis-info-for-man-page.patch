@@ -1,7 +1,7 @@
-From f25dad0101aa324c5c8d9ced2155035fdfe11a3e Mon Sep 17 00:00:00 2001
+From 80450116dbb2c2362f4686361ee4530e8b78ea36 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Sat, 31 Oct 2009 01:31:53 -0500
-Subject: [PATCH 2/3] [topic--man-fix]: Fixed whatis info for man page
+Subject: [PATCH] [topic--man-fix]: Fixed whatis info for man page
 
 Signed-off-by: Manoj Srivastava <srivasta@acm.org>
 (cherry picked from commit bdfb9e85f2b1526c4cb4f5f446e774e7fd25c59e)
@@ -22,6 +22,3 @@ index 7f8ca16..daa04f1 100755
  
  =head1 SYNOPSIS
  
--- 
-1.9.1
-

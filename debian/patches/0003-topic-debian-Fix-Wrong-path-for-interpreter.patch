@@ -1,7 +1,7 @@
-From 1a0b3a4d0155858225fcea213cca185625de25dd Mon Sep 17 00:00:00 2001
+From f765a3de45096ab1fb73c2e167e7e74ed53135ad Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Thu, 3 Sep 2009 23:34:34 -0500
-Subject: [PATCH 3/3] [topic--debian]: Fix Wrong path for interpreter
+Subject: [PATCH] [topic--debian]: Fix Wrong path for interpreter
 
 Mostly tests and examples.
 
@@ -47,6 +47,3 @@ index 6f61097..0287510 100755
  
  BEGIN { 
      if($ENV{INTERNAL_DEBUG}) {
--- 
-1.9.1
-

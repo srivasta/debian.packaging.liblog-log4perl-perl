@@ -1,7 +1,7 @@
-From 7c304fc86f68441e36de321a9587168a19326eb8 Mon Sep 17 00:00:00 2001
-From: Manoj Srivastava <srivasta@golden-gryphon.com>
-Date: Fri, 4 Apr 2014 23:37:47 -0700
-Subject: [PATCH 1/3] debcherry fixup patch
+From 8e26a80f0a5e5b951d3af646b9a59497431c3359 Mon Sep 17 00:00:00 2001
+From: gregor herrmann <gregoa@debian.org>
+Date: Fri, 29 Apr 2016 17:45:59 +0200
+Subject: [PATCH] debcherry fixup patch
 
 7a3ad19 [topic--man-fix]: spelling errors in man pages
 	 - extra changes or conflicts
@@ -14,10 +14,10 @@ Subject: [PATCH 1/3] debcherry fixup patch
  5 files changed, 8 insertions(+), 9 deletions(-)
 
 diff --git a/Changes b/Changes
-index dbdd67a..092f2ce 100644
+index 1ee33b3..4b1b9ba 100644
 --- a/Changes
 +++ b/Changes
-@@ -745,7 +745,7 @@
+@@ -786,7 +786,7 @@
             still be called __ANON__, but this can be overridden by 
             defining
                 local *__ANON__ = "subroutine_name";
@@ -26,7 +26,7 @@ index dbdd67a..092f2ce 100644
  
  0.41 (12/12/2003)
      * (ms) Applied documentation update for Synchronized appender, suggested
-@@ -804,7 +804,7 @@
+@@ -845,7 +845,7 @@
      * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
        an accessor for all appenders currently defined -- added 
        appenders() method
@@ -49,10 +49,10 @@ index 8c55907..2f5c8a6 100644
  =head1 DESCRIPTION
  
 diff --git a/lib/Log/Log4perl/FAQ.pm b/lib/Log/Log4perl/FAQ.pm
-index 3684a4e..de2bcdf 100644
+index c0c068b..b73771f 100644
 --- a/lib/Log/Log4perl/FAQ.pm
 +++ b/lib/Log/Log4perl/FAQ.pm
-@@ -2624,9 +2624,9 @@ file appenders which still hold files open), because those appenders have
+@@ -2628,9 +2628,9 @@ file appenders which still hold files open), because those appenders have
  circular references and therefore aren't cleaned up otherwise.
  
  Now if you define an END handler after "use Log::Log4perl", it'll
@@ -65,16 +65,16 @@ index 3684a4e..de2bcdf 100644
  let you do that.
  
  The solution is easy, just place the END handler I<before> Log4perl
-@@ -2675,4 +2675,3 @@ Grundman, Paul Harrington, Alexander Hartmaier  David Hull,
+@@ -2679,4 +2679,3 @@ Grundman, Paul Harrington, Alexander Hartmaier  David Hull,
  Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter,
  Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope,
  Lars Thegler, David Viner, Mac Yang.
 -
 diff --git a/t/026FileApp.t b/t/026FileApp.t
-index ca6d112..f85eecc 100644
+index 560f260..f333270 100644
 --- a/t/026FileApp.t
 +++ b/t/026FileApp.t
-@@ -63,7 +63,7 @@ close FILE;
+@@ -72,7 +72,7 @@ close FILE;
  
  ####################################################
  # Append to a log file without specifying append mode
@@ -96,6 +96,3 @@ index 118d09a..7dbbff1 100644
  ######################################################################
  Log::Log4perl->init(\<<'EOT');
      log4perl.logger = INFO, A1
--- 
-1.9.1
-
