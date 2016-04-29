@@ -1,12 +1,17 @@
-liblog-log4perl-perl (1.47-1) UNRELEASED; urgency=medium
+liblog-log4perl-perl (1.47-1) unstable; urgency=medium
+
+  * Team upload.
 
   [ Salvatore Bonaccorso ]
   * debian/control: Use HTTPS transport protocol for Vcs-Git URI
 
   [ gregor herrmann ]
-  * Import upstream version 1.47
+  * Import upstream version 1.47.
+  * Refresh exported patches with git-debcherry.
+  * More spelling fixes in the POD.
+  * Declare compliance with Debian Policy 3.9.8.
 
- -- gregor herrmann <gregoa@debian.org>  Fri, 29 Apr 2016 17:22:52 +0200
+ -- gregor herrmann <gregoa@debian.org>  Fri, 29 Apr 2016 17:55:38 +0200
 
 liblog-log4perl-perl (1.46-1) unstable; urgency=medium
 
