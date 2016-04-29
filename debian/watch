@@ -1,6 +1,2 @@
 version=3
-
-#http://log4perl.sourceforge.net/releases/Log-Log4perl-(.*).tar.gz debian 
-#ftp://ftp.sf.net/pub/sourceforge/l/lo//Log-Log4perl-(.*).tar.gz
-
-https://metacpan.org/release/Log-Log4perl   .*/Log-Log4perl-v?(\d[\d.-]+)\.(?:tar(?:\.gz|\.bz2)?|tgz|zip)$ debian 
+https://metacpan.org/release/Log-Log4perl   .*/Log-Log4perl-v?(\d[\d.-]+)\.(?:tar(?:\.gz|\.bz2)?|tgz|zip)$
