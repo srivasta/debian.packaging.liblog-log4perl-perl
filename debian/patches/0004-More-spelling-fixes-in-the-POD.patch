@@ -1,4 +1,4 @@
-From 4fa43916e451a3b6703b221147b505a977e3c362 Mon Sep 17 00:00:00 2001
+From 1a47caee3b80543c63e1f08574b53c496eb61e47 Mon Sep 17 00:00:00 2001
 From: gregor herrmann <gregoa@debian.org>
 Date: Fri, 29 Apr 2016 17:53:54 +0200
 Subject: [PATCH] More spelling fixes in the POD.
