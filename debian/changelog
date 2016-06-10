@@ -1,9 +1,12 @@
-liblog-log4perl-perl (1.47-2) UNRELEASED; urgency=medium
+liblog-log4perl-perl (1.47-2) unstable; urgency=medium
 
+  * Team upload.
   * debian/copyright: change Copyright-Format 1.0 URL to HTTPS.
   * debian/upstream/metadata: change GitHub/CPAN URL(s) to HTTPS.
+  * Semaphore issue fixed in Synchronized (cherry-picked from upstream Git).
+    (Closes: #826322)
 
- -- gregor herrmann <gregoa@debian.org>  Fri, 20 May 2016 12:06:16 +0200
+ -- gregor herrmann <gregoa@debian.org>  Fri, 10 Jun 2016 22:04:17 +0200
 
 liblog-log4perl-perl (1.47-1) unstable; urgency=medium
 
