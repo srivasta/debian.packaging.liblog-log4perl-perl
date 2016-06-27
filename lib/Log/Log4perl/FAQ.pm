@@ -2628,9 +2628,9 @@ file appenders which still hold files open), because those appenders have
 circular references and therefore aren't cleaned up otherwise.
 
 Now if you define an END handler after "use Log::Log4perl", it'll
-trigger before Log4perl gets a chance to clean up, which isn't a 
-problem on Unix where you can delete a file even if some process has a 
-handle to it open, but it's a problem on Win32, where the OS won't 
+trigger before Log4perl gets a chance to clean up, which isn't a
+problem on Unix where you can delete a file even if some process has a
+handle to it open, but it's a problem on Win32, where the OS won't
 let you do that.
 
 The solution is easy, just place the END handler I<before> Log4perl
@@ -2679,4 +2679,3 @@ Grundman, Paul Harrington, Alexander Hartmaier  David Hull,
 Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter,
 Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope,
 Lars Thegler, David Viner, Mac Yang.
-
