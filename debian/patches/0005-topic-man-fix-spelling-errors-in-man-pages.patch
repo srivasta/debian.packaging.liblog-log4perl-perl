@@ -1,17 +1,21 @@
-From 4be4acda6801e115313411739aefa5ce2097be82 Mon Sep 17 00:00:00 2001
-From: gregor herrmann <gregoa@debian.org>
-Date: Fri, 10 Jun 2016 21:57:31 +0200
-Subject: [PATCH] debcherry fixup patch
+From 8a8f3a307b77d0aeed65524467a89ce1e30911b6 Mon Sep 17 00:00:00 2001
+From: Manoj Srivastava <srivasta@golden-gryphon.com>
+Date: Sun, 28 Apr 2013 02:48:57 -0700
+Subject: [PATCH] [topic--man-fix]: spelling errors in man pages
 
-7a3ad19 [topic--man-fix]: spelling errors in man pages
-	 - extra changes or conflicts
+seperately separately
+explicitely explicitly
+noticable noticeable
+enviroment environment
+
+Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
+(cherry picked from commit ca33ddc478e32e645ad8fce4760a6d8fbfd8cda1)
 ---
  Changes                            | 4 ++--
  lib/Log/Log4perl/Appender/Limit.pm | 2 +-
- lib/Log/Log4perl/FAQ.pm            | 7 +++----
  t/026FileApp.t                     | 2 +-
  t/028Additivity.t                  | 2 +-
- 5 files changed, 8 insertions(+), 9 deletions(-)
+ 4 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/Changes b/Changes
 index 1ee33b3..4b1b9ba 100644
@@ -48,28 +52,6 @@ index 8c55907..2f5c8a6 100644
  
  =head1 DESCRIPTION
  
-diff --git a/lib/Log/Log4perl/FAQ.pm b/lib/Log/Log4perl/FAQ.pm
-index c0c068b..b73771f 100644
---- a/lib/Log/Log4perl/FAQ.pm
-+++ b/lib/Log/Log4perl/FAQ.pm
-@@ -2628,9 +2628,9 @@ file appenders which still hold files open), because those appenders have
- circular references and therefore aren't cleaned up otherwise.
- 
- Now if you define an END handler after "use Log::Log4perl", it'll
--trigger before Log4perl gets a chance to clean up, which isn't a 
--problem on Unix where you can delete a file even if some process has a 
--handle to it open, but it's a problem on Win32, where the OS won't 
-+trigger before Log4perl gets a chance to clean up, which isn't a
-+problem on Unix where you can delete a file even if some process has a
-+handle to it open, but it's a problem on Win32, where the OS won't
- let you do that.
- 
- The solution is easy, just place the END handler I<before> Log4perl
-@@ -2679,4 +2679,3 @@ Grundman, Paul Harrington, Alexander Hartmaier  David Hull,
- Robert Jacobson, Jason Kohles, Jeff Macdonald, Markus Peter,
- Brett Rann, Peter Rabbitson, Erik Selberg, Aaron Straup Cope,
- Lars Thegler, David Viner, Mac Yang.
--
 diff --git a/t/026FileApp.t b/t/026FileApp.t
 index 560f260..f333270 100644
 --- a/t/026FileApp.t

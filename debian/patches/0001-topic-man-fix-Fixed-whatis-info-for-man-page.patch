@@ -1,4 +1,4 @@
-From 40657774724f8650b3b2966462ecb139dfefa176 Mon Sep 17 00:00:00 2001
+From 97cbafea69cab01e741df48a9b10c3ca54f85901 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Sat, 31 Oct 2009 01:31:53 -0500
 Subject: [PATCH] [topic--man-fix]: Fixed whatis info for man page
