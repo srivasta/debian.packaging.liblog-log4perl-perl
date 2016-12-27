@@ -16,7 +16,7 @@ use Log::Log4perl::Level;
 use Log::Log4perl::Config;
 use Log::Log4perl::Appender;
 
-our $VERSION = '1.47';
+our $VERSION = '1.48';
 
    # set this to '1' if you're using a wrapper
    # around Log::Log4perl
@@ -111,11 +111,11 @@ sub import {
             my $name  = "$caller_pkg\::$key";
                # Need to split this up in two lines, or CVS will
                # mess it up.
-            my $value = $
-                        Log::Log4perl::Level::PRIORITY{$key};
+            my $value = $Log::Log4perl::Level::PRIORITY{
+              $key};
             no strict qw(refs);
             *{"$name"} = \$value;
-        }
+        } 
 
         delete $tags{':levels'};
     }
@@ -615,7 +615,10 @@ sub remove_logger {
     Log::Log4perl->easy_closure_logger_remove( $logger );
 
     # Remove the logger from the system
-    delete $Log::Log4perl::Logger::LOGGERS_BY_NAME->{ $logger->{category} };
+      # Need to split this up in two lines, or CVS will
+      # mess it up.
+    delete $Log::Log4perl::Logger::LOGGERS_BY_NAME->{ 
+      $logger->{category} };
 }
 
 1;
@@ -2469,7 +2472,7 @@ This will decrease the thresholds of all appenders in the system by
 one level, i.e. WARN becomes INFO, INFO becomes DEBUG, etc. To only modify 
 selected ones, use
 
-       # decrease thresholds of all appenders
+       # decrease thresholds of selected appenders
     Log::Log4perl->appender_thresholds_adjust(-1, ['AppName1', ...]);
 
 and pass the names of affected appenders in a ref to an array.
