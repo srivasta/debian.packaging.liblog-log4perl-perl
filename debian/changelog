@@ -1,3 +1,9 @@
+liblog-log4perl-perl (1.48-1) UNRELEASED; urgency=medium
+
+  * Import upstream version 1.48
+
+ -- gregor herrmann <gregoa@debian.org>  Tue, 27 Dec 2016 01:10:28 +0100
+
 liblog-log4perl-perl (1.47-2) unstable; urgency=medium
 
   * Team upload.
