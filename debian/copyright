@@ -3,7 +3,7 @@ Upstream-Name: liblog-log4perl-perl
 Source: https://metacpan.org/release/Log-Log4perl
 
 Files: *
-Copyright:  2002-2009 by  Mike Schilli <m@perlmeister.com>
+Copyright:  2002-2016 by  Mike Schilli <m@perlmeister.com>
                           and Kevin Goess <cpan@goess.org>.
              2002  by Erik Selberg <erik@selberg.com>
              2003  by James FitzGibbon <james.fitzgibbon@target.com>
