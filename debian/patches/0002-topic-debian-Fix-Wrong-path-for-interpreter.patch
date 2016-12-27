@@ -1,4 +1,4 @@
-From f86ecbedeef2e510e0125396030ca0070948b73b Mon Sep 17 00:00:00 2001
+From 7b5aa911408bfa9aae68263396cf21d779a94458 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Thu, 3 Sep 2009 23:34:34 -0500
 Subject: [PATCH] [topic--debian]: Fix Wrong path for interpreter

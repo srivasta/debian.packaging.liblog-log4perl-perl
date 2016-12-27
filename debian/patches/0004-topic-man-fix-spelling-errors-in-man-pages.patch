@@ -1,4 +1,4 @@
-From 8a8f3a307b77d0aeed65524467a89ce1e30911b6 Mon Sep 17 00:00:00 2001
+From 456dfa7a2784d89f589968838c21472974c2a491 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@golden-gryphon.com>
 Date: Sun, 28 Apr 2013 02:48:57 -0700
 Subject: [PATCH] [topic--man-fix]: spelling errors in man pages
@@ -18,10 +18,10 @@ Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
  4 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/Changes b/Changes
-index 1ee33b3..4b1b9ba 100644
+index 1c14865..e7828b3 100644
 --- a/Changes
 +++ b/Changes
-@@ -786,7 +786,7 @@
+@@ -798,7 +798,7 @@
             still be called __ANON__, but this can be overridden by 
             defining
                 local *__ANON__ = "subroutine_name";
@@ -30,7 +30,7 @@ index 1ee33b3..4b1b9ba 100644
  
  0.41 (12/12/2003)
      * (ms) Applied documentation update for Synchronized appender, suggested
-@@ -845,7 +845,7 @@
+@@ -857,7 +857,7 @@
      * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
        an accessor for all appenders currently defined -- added 
        appenders() method
@@ -53,7 +53,7 @@ index 8c55907..2f5c8a6 100644
  =head1 DESCRIPTION
  
 diff --git a/t/026FileApp.t b/t/026FileApp.t
-index 560f260..f333270 100644
+index 7ec794b..4ba179d 100644
 --- a/t/026FileApp.t
 +++ b/t/026FileApp.t
 @@ -72,7 +72,7 @@ close FILE;

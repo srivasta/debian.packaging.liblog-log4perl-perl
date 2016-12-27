@@ -1,4 +1,4 @@
-From da67cc8fc7591794c1b1462892cb5c74678deb90 Mon Sep 17 00:00:00 2001
+From 0b60d9ffcfa99ea4fe56fe3dcd98e68c1bce6044 Mon Sep 17 00:00:00 2001
 From: gregor herrmann <gregoa@debian.org>
 Date: Fri, 29 Apr 2016 17:53:54 +0200
 Subject: [PATCH] More spelling fixes in the POD.
@@ -12,10 +12,10 @@ s/compontent/component/
  3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/lib/Log/Log4perl.pm b/lib/Log/Log4perl.pm
-index 914e739..dd42104 100644
+index 091086a..8c16566 100644
 --- a/lib/Log/Log4perl.pm
 +++ b/lib/Log/Log4perl.pm
-@@ -2247,7 +2247,7 @@ C<die()> (including the traditional output to STDERR) in any case afterwards.
+@@ -2250,7 +2250,7 @@ C<die()> (including the traditional output to STDERR) in any case afterwards.
  See L<"Log and die or warn"> for the similar C<logdie()> and C<logwarn()>
  functions of regular (i.e non-stealth) loggers.
  
@@ -24,7 +24,7 @@ index 914e739..dd42104 100644
  are provided in C<:easy> mode, facilitating the use of C<logcarp()>,
  C<logcluck()>, C<logcroak()>, and C<logconfess()> with stealth loggers.
  
-@@ -2759,7 +2759,7 @@ would even play along in the Log::Log4perl framework.
+@@ -2762,7 +2762,7 @@ would even play along in the Log::Log4perl framework.
  A call to C<Log::Log4perl-E<gt>infiltrate_lwp()> does exactly this. 
  In a very rude way, it pulls the rug from under LWP::UserAgent and transforms
  its C<debug/conn> messages into C<debug()> calls of loggers of the category
@@ -47,10 +47,10 @@ index 0537018..c69cce5 100644
  =head1 LICENSE
  
 diff --git a/lib/Log/Log4perl/Layout/PatternLayout.pm b/lib/Log/Log4perl/Layout/PatternLayout.pm
-index 94854db..cac7434 100644
+index b9c5c4f..f0d5da1 100644
 --- a/lib/Log/Log4perl/Layout/PatternLayout.pm
 +++ b/lib/Log/Log4perl/Layout/PatternLayout.pm
-@@ -612,7 +612,7 @@ just like in I<printf>:
+@@ -611,7 +611,7 @@ just like in I<printf>:
  Some placeholders have special functions defined if you add curlies 
  with content after them:
  
