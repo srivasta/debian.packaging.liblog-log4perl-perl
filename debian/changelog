@@ -1,6 +1,8 @@
 liblog-log4perl-perl (1.49-1) UNRELEASED; urgency=medium
 
-  * Import upstream version 1.49
+  * Import upstream version 1.49.
+    Fixes "Warnings with Perl 5.24 and newer when "syswrite" and "utf8"
+    are used together" (Closes: #855894)
 
  -- gregor herrmann <gregoa@debian.org>  Sun, 18 Jun 2017 17:59:34 +0200
 
