@@ -221,7 +221,7 @@ __END__
     WARN("This message will be sent immediately.");
     WARN("This message will be delayed by one hour.");
     sleep(3601);
-    WARN("This message plus the last one will be sent now, separately.");
+    WARN("This message plus the last one will be sent now, seperately.");
 
 =head1 DESCRIPTION
 

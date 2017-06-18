@@ -2,6 +2,10 @@
  Revision history for Log::Log4perl
 ##################################################
 
+1.49 (2017/02/20)
+   *    (ms) Adapted to perl 5.24 which balks at syswrite/utf8:
+          https://github.com/mschilli/log4perl/issues/78
+
 1.48 (2016/11/14)
    *    (ms) [rt.cpan.org #117377] Moved PatternLayout's documentation of
              DateFormat features to DateFormat.pm to avoid duplication 
@@ -798,7 +802,7 @@
            still be called __ANON__, but this can be overridden by 
            defining
                local *__ANON__ = "subroutine_name";
-           in them explicitly (thanks, Perlmonks :).
+           in them explicitely (thanks, Perlmonks :).
 
 0.41 (12/12/2003)
     * (ms) Applied documentation update for Synchronized appender, suggested
@@ -857,7 +861,7 @@
     * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
       an accessor for all appenders currently defined -- added 
       appenders() method
-    * (ms) Test case 041SafeEval.t didn't share $0 explicitly and
+    * (ms) Test case 041SafeEval.t didn't share $0 explicitely and
       created some warnings, fixed that with (jf)'s help.
     * (ms) Added performance improvements suggested by
       Kyle R. Burton <mortis@voicenet.com>. is_debug/is_info/etc.

@@ -11,6 +11,7 @@ use Fcntl;
 use File::Path;
 use File::Spec::Functions qw(splitpath);
 use constant _INTERNAL_DEBUG => 0;
+use constant SYSWRITE_UTF8_OK => ( $] < 5.024 );
 
 ##################################################
 sub new {
@@ -26,7 +27,7 @@ sub new {
         syswrite  => 0,
         mode      => "append",
         binmode   => undef,
-        utf8      => undef,
+        utf8      => 0,
         recreate  => 0,
         recreate_check_interval => 30,
         recreate_check_signal   => undef,
@@ -62,10 +63,36 @@ sub new {
         close FILE;
     }
 
+    print "Calling syswrite_encoder\n" if _INTERNAL_DEBUG;
+
+    $self->{syswrite_encoder} = $self->syswrite_encoder();
+
+    print "syswrite_encoder returned\n" if _INTERNAL_DEBUG;
+
         # This will die() if it fails
     $self->file_open() unless $self->{create_at_logtime};
 
     return $self;
+}
+
+##################################################
+sub syswrite_encoder {
+##################################################
+    my($self) = @_;
+
+    if( !SYSWRITE_UTF8_OK and $self->{syswrite} and $self->{utf8} ) {
+        print "Requiring Encode\n" if _INTERNAL_DEBUG;
+        eval { require Encode };
+        print "Requiring Encode returned: $@\n" if _INTERNAL_DEBUG;
+
+        if( $@ ) {
+            die "syswrite and utf8 requires Encode.pm";
+        } else {
+            return sub { Encode::encode_utf8($_[0]) };
+        }
+    }
+
+    return undef;
 }
 
 ##################################################
@@ -163,8 +190,11 @@ sub file_open {
         binmode $self->{fh}, $self->{binmode};
     }
 
-    if (defined $self->{utf8}) {
-        binmode $self->{fh}, ":utf8";
+    if ($self->{utf8}) {
+          # older perls can handle syswrite+utf8 just fine
+        if(SYSWRITE_UTF8_OK or !$self->{syswrite}) {
+            binmode $self->{fh}, ":utf8";
+        }
     }
 
     if(defined $self->{header_text}) {
@@ -269,8 +299,15 @@ sub log {
     my $fh = $self->{fh};
 
     if($self->{syswrite}) {
-       defined (syswrite $fh, $params{message}) or
-           die "Cannot syswrite to '$self->{filename}': $!";
+         my $rc = 
+           syswrite( $fh, 
+               $self->{ syswrite_encoder } ?
+                 $self->{ syswrite_encoder }->($params{message}) :
+                 $params{message} );
+
+         if(!$rc) {
+             die "Cannot syswrite to '$self->{filename}': $!";
+         }
     } else {
         print $fh $params{message} or
             die "Cannot write to '$self->{filename}': $!";

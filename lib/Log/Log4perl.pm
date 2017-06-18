@@ -16,7 +16,7 @@ use Log::Log4perl::Level;
 use Log::Log4perl::Config;
 use Log::Log4perl::Appender;
 
-our $VERSION = '1.48';
+our $VERSION = '1.49';
 
    # set this to '1' if you're using a wrapper
    # around Log::Log4perl
@@ -2250,7 +2250,7 @@ C<die()> (including the traditional output to STDERR) in any case afterwards.
 See L<"Log and die or warn"> for the similar C<logdie()> and C<logwarn()>
 functions of regular (i.e non-stealth) loggers.
 
-Similarly, C<LOGCARP()>, C<LOGCLUCK()>, C<LOGCROAK()>, and C<LOGCONFESS()>
+Similarily, C<LOGCARP()>, C<LOGCLUCK()>, C<LOGCROAK()>, and C<LOGCONFESS()>
 are provided in C<:easy> mode, facilitating the use of C<logcarp()>,
 C<logcluck()>, C<logcroak()>, and C<logconfess()> with stealth loggers.
 
@@ -2762,7 +2762,7 @@ would even play along in the Log::Log4perl framework.
 A call to C<Log::Log4perl-E<gt>infiltrate_lwp()> does exactly this. 
 In a very rude way, it pulls the rug from under LWP::UserAgent and transforms
 its C<debug/conn> messages into C<debug()> calls of loggers of the category
-C<"LWP::UserAgent">. Similarly, C<LWP::UserAgent>'s C<trace> messages 
+C<"LWP::UserAgent">. Similarily, C<LWP::UserAgent>'s C<trace> messages 
 are turned into C<Log::Log4perl>'s C<info()> method calls. Note that this
 only works for LWP::UserAgent versions E<lt> 5.822, because this (and
 probably later) versions miss debugging functions entirely.
