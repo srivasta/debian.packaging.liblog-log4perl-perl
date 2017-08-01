@@ -1,4 +1,4 @@
-From 0b60d9ffcfa99ea4fe56fe3dcd98e68c1bce6044 Mon Sep 17 00:00:00 2001
+From 90969431e34c0d7c8a93d833f975db66842f22d1 Mon Sep 17 00:00:00 2001
 From: gregor herrmann <gregoa@debian.org>
 Date: Fri, 29 Apr 2016 17:53:54 +0200
 Subject: [PATCH] More spelling fixes in the POD.
@@ -12,7 +12,7 @@ s/compontent/component/
  3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/lib/Log/Log4perl.pm b/lib/Log/Log4perl.pm
-index 091086a..8c16566 100644
+index 62853a5..dda19aa 100644
 --- a/lib/Log/Log4perl.pm
 +++ b/lib/Log/Log4perl.pm
 @@ -2250,7 +2250,7 @@ C<die()> (including the traditional output to STDERR) in any case afterwards.

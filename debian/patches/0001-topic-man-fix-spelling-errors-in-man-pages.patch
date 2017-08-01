@@ -1,4 +1,4 @@
-From 456dfa7a2784d89f589968838c21472974c2a491 Mon Sep 17 00:00:00 2001
+From b7512303faa2619aa67e34df3c287926dbe1ab22 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@golden-gryphon.com>
 Date: Sun, 28 Apr 2013 02:48:57 -0700
 Subject: [PATCH] [topic--man-fix]: spelling errors in man pages
@@ -18,10 +18,10 @@ Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
  4 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/Changes b/Changes
-index 1c14865..e7828b3 100644
+index 1b3feb8..a13ed16 100644
 --- a/Changes
 +++ b/Changes
-@@ -798,7 +798,7 @@
+@@ -802,7 +802,7 @@
             still be called __ANON__, but this can be overridden by 
             defining
                 local *__ANON__ = "subroutine_name";
@@ -30,7 +30,7 @@ index 1c14865..e7828b3 100644
  
  0.41 (12/12/2003)
      * (ms) Applied documentation update for Synchronized appender, suggested
-@@ -857,7 +857,7 @@
+@@ -861,7 +861,7 @@
      * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
        an accessor for all appenders currently defined -- added 
        appenders() method
