@@ -1,19 +1,15 @@
-liblog-log4perl-perl (1.49-1) UNRELEASED; urgency=medium
+liblog-log4perl-perl (1.49-1) unstable; urgency=medium
 
-  TODO:
-  - spelling-error-in-manpage usr/share/man/man3/Log::Log4perl::DateFormat.3pm.gz resultion resolution
-  - it seems that the (debcherry) quilt patches are not applied any more on master?
-    idea: gbp-import-orig uses --merge-mode=automatic=replace now. should use
-    "merge" --> debian/gbp.conf added for the future
-
+  * Team upload.
   * Import upstream version 1.49.
     Fixes "Warnings with Perl 5.24 and newer when "syswrite" and "utf8"
     are used together" (Closes: #855894)
   * Add debian/gbp.conf to tell gbp import-orig to merge the upstream
     branch (instead of replacing it). This is necessary because we have
     changes applied (git-dpm, git-debcherry).
+  * Declare compliance with Debian Policy 4.0.0.
 
- -- gregor herrmann <gregoa@debian.org>  Sun, 18 Jun 2017 19:53:40 +0200
+ -- gregor herrmann <gregoa@debian.org>  Tue, 01 Aug 2017 16:39:59 -0400
 
 liblog-log4perl-perl (1.48-1) unstable; urgency=medium
 
