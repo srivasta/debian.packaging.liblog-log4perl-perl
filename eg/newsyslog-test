@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/perl -w
 ###########################################
 # newsyslog-test
 # Mike Schilli, 200t (m@perlmeister.com)
