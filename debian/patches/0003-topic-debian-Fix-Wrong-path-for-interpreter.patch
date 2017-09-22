@@ -1,24 +1,12 @@
-From cde78a7f0c62b6388665bde8dee7e09ffcbd66a0 Mon Sep 17 00:00:00 2001
 From: Manoj Srivastava <srivasta@debian.org>
 Date: Thu, 3 Sep 2009 23:34:34 -0500
 Subject: [PATCH] [topic--debian]: Fix Wrong path for interpreter
+Bug-Debian: https://bugs.debian.org/544536
 
 Mostly tests and examples.
 
-Closes: #544536
-
 Signed-off-by: Manoj Srivastava <srivasta@debian.org>
-(cherry picked from commit 2745cbbd97ee8d334287b54b18097d7e1a66bb12)
 
-Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
----
- eg/benchmarks/simple | 2 +-
- eg/newsyslog-test    | 2 +-
- t/027Watch4.t        | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/eg/benchmarks/simple b/eg/benchmarks/simple
-index 9558efc..e24da07 100755
 --- a/eg/benchmarks/simple
 +++ b/eg/benchmarks/simple
 @@ -1,4 +1,4 @@
@@ -27,8 +15,6 @@ index 9558efc..e24da07 100755
  ###########################################
  # Log4perl Benchmarks
  # Mike Schilli, 2008 (m@perlmeister.com)
-diff --git a/eg/newsyslog-test b/eg/newsyslog-test
-index 466c897..9b907f8 100755
 --- a/eg/newsyslog-test
 +++ b/eg/newsyslog-test
 @@ -1,4 +1,4 @@
@@ -37,8 +23,6 @@ index 466c897..9b907f8 100755
  ###########################################
  # newsyslog-test
  # Mike Schilli, 200t (m@perlmeister.com)
-diff --git a/t/027Watch4.t b/t/027Watch4.t
-index 6f61097..0287510 100755
 --- a/t/027Watch4.t
 +++ b/t/027Watch4.t
 @@ -1,4 +1,4 @@

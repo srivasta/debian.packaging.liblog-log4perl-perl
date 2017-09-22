@@ -3,22 +3,8 @@ From: Manoj Srivastava <srivasta@golden-gryphon.com>
 Date: Sun, 28 Apr 2013 02:48:57 -0700
 Subject: [PATCH] [topic--man-fix]: spelling errors in man pages
 
-seperately separately
-explicitely explicitly
-noticable noticeable
-enviroment environment
-
 Signed-off-by: Manoj Srivastava <srivasta@golden-gryphon.com>
-(cherry picked from commit ca33ddc478e32e645ad8fce4760a6d8fbfd8cda1)
----
- Changes                            | 4 ++--
- lib/Log/Log4perl/Appender/Limit.pm | 2 +-
- t/026FileApp.t                     | 2 +-
- t/028Additivity.t                  | 2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/Changes b/Changes
-index 1b3feb8..a13ed16 100644
 --- a/Changes
 +++ b/Changes
 @@ -802,7 +802,7 @@
@@ -39,8 +25,6 @@ index 1b3feb8..a13ed16 100644
        created some warnings, fixed that with (jf)'s help.
      * (ms) Added performance improvements suggested by
        Kyle R. Burton <mortis@voicenet.com>. is_debug/is_info/etc.
-diff --git a/lib/Log/Log4perl/Appender/Limit.pm b/lib/Log/Log4perl/Appender/Limit.pm
-index 8c55907..2f5c8a6 100644
 --- a/lib/Log/Log4perl/Appender/Limit.pm
 +++ b/lib/Log/Log4perl/Appender/Limit.pm
 @@ -221,7 +221,7 @@ __END__
@@ -52,8 +36,6 @@ index 8c55907..2f5c8a6 100644
  
  =head1 DESCRIPTION
  
-diff --git a/t/026FileApp.t b/t/026FileApp.t
-index 7ec794b..4ba179d 100644
 --- a/t/026FileApp.t
 +++ b/t/026FileApp.t
 @@ -72,7 +72,7 @@ close FILE;
@@ -65,8 +47,6 @@ index 7ec794b..4ba179d 100644
  ####################################################
  my $data = <<EOT;
  log4j.category = INFO, FileAppndr
-diff --git a/t/028Additivity.t b/t/028Additivity.t
-index 118d09a..7dbbff1 100644
 --- a/t/028Additivity.t
 +++ b/t/028Additivity.t
 @@ -72,7 +72,7 @@ ok($buf2, "INFO - Percolate this!\n");

@@ -802,7 +802,7 @@
            still be called __ANON__, but this can be overridden by 
            defining
                local *__ANON__ = "subroutine_name";
-           in them explicitly (thanks, Perlmonks :).
+           in them explicitely (thanks, Perlmonks :).
 
 0.41 (12/12/2003)
     * (ms) Applied documentation update for Synchronized appender, suggested
@@ -861,7 +861,7 @@
     * (ms) Matthew Keene <mkeene@netspace.net.au> suggested to have
       an accessor for all appenders currently defined -- added 
       appenders() method
-    * (ms) Test case 041SafeEval.t didn't share $0 explicitly and
+    * (ms) Test case 041SafeEval.t didn't share $0 explicitely and
       created some warnings, fixed that with (jf)'s help.
     * (ms) Added performance improvements suggested by
       Kyle R. Burton <mortis@voicenet.com>. is_debug/is_info/etc.

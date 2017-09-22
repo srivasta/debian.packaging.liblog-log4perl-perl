@@ -1,21 +1,10 @@
-From 90969431e34c0d7c8a93d833f975db66842f22d1 Mon Sep 17 00:00:00 2001
 From: gregor herrmann <gregoa@debian.org>
 Date: Fri, 29 Apr 2016 17:53:54 +0200
 Subject: [PATCH] More spelling fixes in the POD.
 
-s/Similarily/Similarly/gi
-s/compontent/component/
----
- lib/Log/Log4perl.pm                      | 4 ++--
- lib/Log/Log4perl/Config/Watch.pm         | 2 +-
- lib/Log/Log4perl/Layout/PatternLayout.pm | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/lib/Log/Log4perl.pm b/lib/Log/Log4perl.pm
-index 62853a5..dda19aa 100644
 --- a/lib/Log/Log4perl.pm
 +++ b/lib/Log/Log4perl.pm
-@@ -2250,7 +2250,7 @@ C<die()> (including the traditional output to STDERR) in any case afterwards.
+@@ -2250,7 +2250,7 @@ C<die()> (including the traditional outp
  See L<"Log and die or warn"> for the similar C<logdie()> and C<logwarn()>
  functions of regular (i.e non-stealth) loggers.
  
@@ -24,20 +13,18 @@ index 62853a5..dda19aa 100644
  are provided in C<:easy> mode, facilitating the use of C<logcarp()>,
  C<logcluck()>, C<logcroak()>, and C<logconfess()> with stealth loggers.
  
-@@ -2762,7 +2762,7 @@ would even play along in the Log::Log4perl framework.
+@@ -2762,7 +2762,7 @@ would even play along in the Log::Log4pe
  A call to C<Log::Log4perl-E<gt>infiltrate_lwp()> does exactly this. 
  In a very rude way, it pulls the rug from under LWP::UserAgent and transforms
  its C<debug/conn> messages into C<debug()> calls of loggers of the category
 -C<"LWP::UserAgent">. Similarily, C<LWP::UserAgent>'s C<trace> messages 
-+C<"LWP::UserAgent">. Similarly, C<LWP::UserAgent>'s C<trace> messages 
++C<"LWP::UserAgent">. Similarly, C<LWP::UserAgent>'s C<trace> messages
  are turned into C<Log::Log4perl>'s C<info()> method calls. Note that this
  only works for LWP::UserAgent versions E<lt> 5.822, because this (and
  probably later) versions miss debugging functions entirely.
-diff --git a/lib/Log/Log4perl/Config/Watch.pm b/lib/Log/Log4perl/Config/Watch.pm
-index 0537018..c69cce5 100644
 --- a/lib/Log/Log4perl/Config/Watch.pm
 +++ b/lib/Log/Log4perl/Config/Watch.pm
-@@ -317,7 +317,7 @@ been replaced by a new file in the meantime.
+@@ -317,7 +317,7 @@ been replaced by a new file in the meant
      }
  
  The parameters C<check_interval> and C<signal> limit the number of physical 
@@ -46,8 +33,6 @@ index 0537018..c69cce5 100644
  
  =head1 LICENSE
  
-diff --git a/lib/Log/Log4perl/Layout/PatternLayout.pm b/lib/Log/Log4perl/Layout/PatternLayout.pm
-index b9c5c4f..f0d5da1 100644
 --- a/lib/Log/Log4perl/Layout/PatternLayout.pm
 +++ b/lib/Log/Log4perl/Layout/PatternLayout.pm
 @@ -611,7 +611,7 @@ just like in I<printf>:

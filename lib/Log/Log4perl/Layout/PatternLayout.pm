@@ -611,7 +611,7 @@ just like in I<printf>:
 Some placeholders have special functions defined if you add curlies 
 with content after them:
 
-    %c{1}  Just show the right-most category component, useful in large
+    %c{1}  Just show the right-most category compontent, useful in large
            class hierarchies (Foo::Baz::Bar -> Bar)
     %c{2}  Just show the two right most category components
            (Foo::Baz::Bar -> Baz::Bar)
