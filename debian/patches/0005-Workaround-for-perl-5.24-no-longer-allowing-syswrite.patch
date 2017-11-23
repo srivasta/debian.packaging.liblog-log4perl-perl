@@ -1,0 +1,99 @@
+From: mschilli <github@perlmeister.com>
+Date: Sun, 19 Feb 2017 13:22:59 -0800
+Subject: Workaround for perl-5.24 no longer allowing syswrite+utf8 (see
+ https://github.com/mschilli/log4perl/issues/78)
+Origin: https://github.com/mschilli/log4perl/commit/e8d8f6600312670a156399e220998dbd0832915f
+Bug: https://github.com/mschilli/log4perl/issues/78
+Bug-Debian: https://bugs.debian.org/855894
+
+---
+ lib/Log/Log4perl/Appender/File.pm | 39 ++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 34 insertions(+), 5 deletions(-)
+
+diff --git a/lib/Log/Log4perl/Appender/File.pm b/lib/Log/Log4perl/Appender/File.pm
+index 8b9dfd8..abdce69 100755
+--- a/lib/Log/Log4perl/Appender/File.pm
++++ b/lib/Log/Log4perl/Appender/File.pm
+@@ -11,6 +11,7 @@ use Fcntl;
+ use File::Path;
+ use File::Spec::Functions qw(splitpath);
+ use constant _INTERNAL_DEBUG => 0;
++use constant SYSWRITE_UTF8_OK => ( $] < 5.024 );
+ 
+ ##################################################
+ sub new {
+@@ -26,7 +27,7 @@ sub new {
+         syswrite  => 0,
+         mode      => "append",
+         binmode   => undef,
+-        utf8      => undef,
++        utf8      => 0,
+         recreate  => 0,
+         recreate_check_interval => 30,
+         recreate_check_signal   => undef,
+@@ -62,12 +63,30 @@ sub new {
+         close FILE;
+     }
+ 
++    $self->{syswrite_encoder} = $self->syswrite_encoder();
++
+         # This will die() if it fails
+     $self->file_open() unless $self->{create_at_logtime};
+ 
+     return $self;
+ }
+ 
++##################################################
++sub syswrite_encoder {
++##################################################
++    my($self) = @_;
++
++    if(!SYSWRITE_UTF8_OK and $self->{syswrite} and $self->{utf8}) {
++        if( eval { require Encode } ) {
++            return sub { Encode::encode_utf8($_[0]) };
++        } else {
++            die "syswrite and utf8 requires Encode.pm";
++        }
++    }
++
++    return undef;
++}
++
+ ##################################################
+ sub filename {
+ ##################################################
+@@ -163,8 +182,11 @@ sub file_open {
+         binmode $self->{fh}, $self->{binmode};
+     }
+ 
+-    if (defined $self->{utf8}) {
+-        binmode $self->{fh}, ":utf8";
++    if ($self->{utf8}) {
++          # older perls can handle syswrite+utf8 just fine
++        if(SYSWRITE_UTF8_OK or !$self->{syswrite}) {
++            binmode $self->{fh}, ":utf8";
++        }
+     }
+ 
+     if(defined $self->{header_text}) {
+@@ -269,8 +291,15 @@ sub log {
+     my $fh = $self->{fh};
+ 
+     if($self->{syswrite}) {
+-       defined (syswrite $fh, $params{message}) or
+-           die "Cannot syswrite to '$self->{filename}': $!";
++         my $rc = 
++           syswrite( $fh, 
++               $self->{ syswrite_encoder } ?
++                 $self->{ syswrite_encoder }->($params{message}) :
++                 $params{message} );
++
++         if(!$rc) {
++             die "Cannot syswrite to '$self->{filename}': $!";
++         }
+     } else {
+         print $fh $params{message} or
+             die "Cannot write to '$self->{filename}': $!";
+-- 
+2.15.0
+

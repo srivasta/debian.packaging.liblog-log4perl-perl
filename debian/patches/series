@@ -3,3 +3,4 @@
 0002-topic-debian-Fix-Wrong-path-for-interpreter.patch
 0003-More-spelling-fixes-in-the-POD.patch
 0004-topic-man-fix-spelling-errors-in-man-pages.patch
+0005-Workaround-for-perl-5.24-no-longer-allowing-syswrite.patch
